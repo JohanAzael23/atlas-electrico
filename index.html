@@ -1,0 +1,729 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Atlas Eléctrico de México</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Concepto: tablero de estudio con barra de módulos arriba, pestañas de sección fijas y paneles de gráfica + detalle.
+   Identidad: solo los 4 tonos del kit Ultravioleta v1.0 (valores muestreados del kit, validar contra HEX oficial). Arial Bold / Regular. */
+:root{
+  --pn:#32095F; --vr:#4B1C8F; --uv:#8E4DF2; --ls:#E4CCFF;
+  --bg:#F4F0FB; --surface:#FFFFFF; --surface2:#EFE6FC; --ink:#1F0645; --ink2:#4B1C8F;
+  --muted:color-mix(in srgb,var(--ink) 68%,var(--surface)); --line:color-mix(in srgb,var(--ink) 16%,var(--surface));
+  --c-F:#32095F; --c-N:#E4CCFF; --c-Nline:#4B1C8F; --c-R:#8E4DF2;
+  --accent:#8E4DF2; --on-accent:#FFFFFF; --hd:#32095F; --on-hd:#FFFFFF; --focus:#8E4DF2;
+  --font:Arial,"Helvetica Neue",Helvetica,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#1F0645; --surface:#32095F; --surface2:color-mix(in srgb,#4B1C8F 55%,#32095F); --ink:#F4F0FB; --ink2:#E4CCFF;
+  --c-F:#E4CCFF; --c-N:#4B1C8F; --c-Nline:#E4CCFF; --c-R:#8E4DF2; --hd:#1F0645; --focus:#E4CCFF; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#1F0645; --surface:#32095F; --surface2:color-mix(in srgb,#4B1C8F 55%,#32095F); --ink:#F4F0FB; --ink2:#E4CCFF;
+  --c-F:#E4CCFF; --c-N:#4B1C8F; --c-Nline:#E4CCFF; --c-R:#8E4DF2; --hd:#1F0645; --focus:#E4CCFF; color-scheme:dark;}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 40px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--hd)}
+h1,h2,h3,h4{font-weight:700;line-height:1.2;margin:0;text-wrap:balance}
+h2{font-size:22px}h3{font-size:17px}h4{font-size:14px}
+p{margin:0}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px;border-radius:4px}
+.wrap{max-width:1180px;margin:0 auto}
+.band{margin-left:calc(-1*max(16px,env(safe-area-inset-left,0px)));margin-right:calc(-1*max(16px,env(safe-area-inset-right,0px)));
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.band{background:var(--hd);color:var(--on-hd);padding-block:14px 12px}
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;justify-content:space-between}
+.logo{height:40px;width:auto;border-radius:6px;background:#fff;padding:2px 6px;display:block}
+.ttl{display:flex;flex-direction:column;gap:2px;min-width:0}
+.ttl b{font-size:18px}.ttl span{font-size:12px;opacity:.85}
+.mods{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.mod{border:1px solid color-mix(in srgb,#fff 35%,transparent);background:transparent;color:var(--on-hd);padding:6px 12px;border-radius:999px;font-size:13px}
+.mod[aria-current="page"]{background:var(--ls);color:var(--pn);border-color:var(--ls);font-weight:700}
+.mod[disabled]{opacity:.6;cursor:not-allowed}
+nav.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);border-bottom:1px solid var(--line);
+  margin-left:calc(-1*max(16px,env(safe-area-inset-left,0px)));margin-right:calc(-1*max(16px,env(safe-area-inset-right,0px)));
+  padding:8px max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px))}
+.tabs [role=tablist]{display:flex;gap:6px;overflow-x:auto;scrollbar-width:thin;max-width:1180px;margin:0 auto}
+.tab{flex:0 0 auto;border:1px solid var(--line);background:var(--surface);padding:8px 14px;border-radius:8px;font-size:13px;white-space:nowrap}
+.tab[aria-selected="true"]{background:var(--vr);color:#fff;border-color:var(--vr);font-weight:700}
+:root[data-theme="dark"] .tab[aria-selected="true"]{background:var(--uv)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .tab[aria-selected="true"]{background:var(--uv)}}
+main{padding-top:20px;display:flex;flex-direction:column;gap:20px}
+section.panel{display:flex;flex-direction:column;gap:16px}
+.lead{color:var(--muted);max-width:75ch}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.card.alt{background:var(--surface2)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.sp{justify-content:space-between}
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;line-height:1;padding:4px 7px;border-radius:5px;font-weight:700;letter-spacing:.02em;white-space:nowrap}
+.b-of{background:var(--pn);color:#fff;border:1px solid var(--pn)}
+:root[data-theme="dark"] .b-of{background:var(--ls);color:var(--pn);border-color:var(--ls)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .b-of{background:var(--ls);color:var(--pn);border-color:var(--ls)}}
+.b-ca{border:1.5px solid var(--ink2);color:var(--ink2)}
+.b-si{border:1.5px dashed var(--ink2);color:var(--ink2)}
+.b-es{border:1.5px dotted var(--ink2);color:var(--ink2)}
+.b-co{background:var(--surface2);color:var(--ink2);border:1px solid var(--line)}
+.b-sc{background:var(--ls);color:var(--pn)}
+.tip{border-bottom:1.5px dotted var(--ink2);cursor:help;text-decoration:none}
+.tip:focus-visible{outline-offset:1px}
+#tooltip{position:fixed;z-index:60;max-width:min(340px,calc(100vw - 24px));background:var(--pn);color:#fff;border:1px solid var(--ls);
+  padding:10px 12px;border-radius:8px;font-size:13px;line-height:1.45;box-shadow:0 6px 20px rgba(31,6,69,.35);pointer-events:none}
+#tooltip .tt-t{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--ls);margin-bottom:4px;font-weight:700}
+#tooltip .tt-s{margin-top:6px;font-size:11px;color:var(--ls)}
+.chain{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.step{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px;position:relative;min-width:0;display:flex;flex-direction:column;gap:4px}
+.step small{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+.step b{font-size:15px}
+.step:not(:last-child)::after{content:"→";position:absolute;right:-12px;top:50%;transform:translateY(-50%);color:var(--ink2);font-weight:700;z-index:2;background:var(--bg);border-radius:50%;width:16px;text-align:center;line-height:16px}
+@media (max-width:720px){.chain{grid-template-columns:1fr}.step:not(:last-child)::after{content:"↓";right:auto;left:50%;top:auto;bottom:-12px;transform:translateX(-50%)}}
+.pills{display:flex;flex-wrap:wrap;gap:6px}
+.pill{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:13px}
+.pill[aria-pressed="true"],.pill[aria-selected="true"]{background:var(--vr);color:#fff;border-color:var(--vr);font-weight:700}
+:root[data-theme="dark"] .pill[aria-pressed="true"]{background:var(--uv)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .pill[aria-pressed="true"]{background:var(--uv)}}
+.fam{border-top:5px solid var(--c-F)}.fam.N{border-top-color:var(--c-Nline)}.fam.R{border-top-color:var(--c-R)}
+.chip{display:inline-block;background:var(--surface2);border:1px solid var(--line);border-radius:6px;padding:4px 8px;font-size:13px;margin:0 4px 4px 0}
+button.chip{cursor:pointer}button.chip[aria-pressed="true"]{background:var(--vr);color:#fff;border-color:var(--vr)}
+.note{font-size:13px;color:var(--muted)}
+.callout{border-left:4px solid var(--uv);background:var(--surface2);padding:10px 12px;border-radius:0 8px 8px 0;font-size:14px}
+.sets{display:grid;grid-template-columns:1.3fr 1fr;gap:10px;align-items:stretch}
+.set{border:2px solid var(--ink2);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px;background:var(--surface)}
+.set.inner{border-style:dashed;background:var(--surface2)}
+.set h4{font-size:13px}
+@media (max-width:640px){.sets{grid-template-columns:1fr}}
+/* barras */
+.brow{display:grid;grid-template-columns:minmax(96px,150px) 1fr minmax(70px,auto);gap:8px;align-items:center;padding:3px 0;border-radius:6px}
+.brow:hover,.brow:focus-visible{background:var(--surface2)}
+.bl{font-size:13px;min-width:0}
+.bt{height:12px;background:color-mix(in srgb,var(--ink) 8%,var(--surface));border-radius:0 4px 4px 0;position:relative}
+.bt.two{height:22px;background:none;display:flex;flex-direction:column;gap:2px}
+.bf{height:100%;border-radius:0 4px 4px 0;min-width:2px}
+.two .bf{height:10px}
+.two .bf.prev{opacity:.45}
+.bv{font-size:12px;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.c-F{background:var(--c-F)}.c-R{background:var(--c-R)}
+.c-N{background:repeating-linear-gradient(45deg,var(--c-N) 0 4px,color-mix(in srgb,var(--c-Nline) 55%,var(--c-N)) 4px 6px);box-shadow:inset 0 0 0 1.5px var(--c-Nline)}
+.sw{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:4px}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--muted)}
+.stack{display:flex;height:34px;gap:2px;border-radius:6px;overflow:hidden}
+.seg{display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;min-width:0;overflow:hidden;color:#fff}
+.seg.c-F{color:var(--surface)}.seg.c-N{color:var(--ink)}
+:root:not([data-theme="dark"]) .seg.c-F{color:#fff}
+.kpi{display:flex;flex-direction:column;gap:2px}
+.kpi b{font-size:30px;font-variant-numeric:tabular-nums;color:var(--ink2);line-height:1.05}
+.kpi span{font-size:12px;color:var(--muted)}
+/* clasificador */
+.pool{display:flex;flex-wrap:wrap;gap:8px;min-height:60px;padding:10px;border:1px dashed var(--ink2);border-radius:10px}
+.kc{border:1.5px solid var(--ink2);background:var(--surface);border-radius:8px;padding:6px 10px;font-size:13px;cursor:grab;display:flex;flex-direction:column;align-items:flex-start;gap:1px;text-align:left}
+.kc small{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.kc[aria-pressed="true"]{background:var(--vr);color:#fff;border-color:var(--vr)}
+.kc[aria-pressed="true"] small{color:var(--ls)}
+.kc.ok{cursor:default;background:var(--surface2)}
+.zones{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:10px}
+.zone{border:2px solid var(--line);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:8px;min-height:150px;background:var(--surface)}
+.zone.over{border-color:var(--uv);background:var(--surface2)}
+.zone .place{align-self:flex-start;border:1.5px solid var(--ink2);background:transparent;border-radius:6px;padding:4px 9px;font-size:12px;font-weight:700}
+.zone .place:disabled{opacity:.4;cursor:not-allowed}
+.zl{display:flex;flex-wrap:wrap;gap:6px}
+.feedback{border:1.5px solid var(--ink2);border-radius:10px;padding:10px 12px;font-size:14px;background:var(--surface2);min-height:48px}
+.feedback.bad{border-style:dashed}
+.score{display:flex;gap:18px;flex-wrap:wrap;font-size:14px}
+.score b{font-size:20px;font-variant-numeric:tabular-nums}
+.btn{border:1.5px solid var(--ink2);background:var(--surface);border-radius:8px;padding:7px 14px;font-weight:700;font-size:13px}
+.btn.pri{background:var(--vr);border-color:var(--vr);color:#fff}
+:root[data-theme="dark"] .btn.pri{background:var(--uv);border-color:var(--uv)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn.pri{background:var(--uv);border-color:var(--uv)}}
+/* conversión */
+.flow{display:flex;flex-wrap:wrap;align-items:stretch;gap:0}
+.node{flex:1 1 130px;min-width:0;border:1.5px solid var(--ink2);background:var(--surface);border-radius:10px;padding:10px 8px;text-align:center;display:flex;flex-direction:column;gap:3px;position:relative}
+.node small{font-size:11px;color:var(--muted)}
+.node[aria-pressed="true"]{background:var(--vr);color:#fff;border-color:var(--vr)}
+.node[aria-pressed="true"] small{color:var(--ls)}
+.arrow{flex:0 0 28px;display:flex;align-items:center;justify-content:center;position:relative;color:var(--ink2);font-weight:700}
+.arrow::before{content:"";position:absolute;left:2px;right:2px;top:50%;height:2px;background:repeating-linear-gradient(90deg,var(--uv) 0 6px,transparent 6px 10px);background-size:20px 2px;animation:dash 1s linear infinite}
+.arrow::after{content:"▶";font-size:10px;position:absolute;right:0;top:50%;transform:translateY(-50%)}
+@keyframes dash{to{background-position:20px 0}}
+@media (max-width:720px){.flow{flex-direction:column}.arrow{flex:0 0 26px;height:26px}.arrow::before{left:50%;right:auto;top:2px;bottom:2px;width:2px;height:auto;background:repeating-linear-gradient(180deg,var(--uv) 0 6px,transparent 6px 10px);background-size:2px 20px;animation:dashv 1s linear infinite}.arrow::after{content:"▼";right:auto;left:50%;top:auto;bottom:0;transform:translateX(-50%)}}
+@keyframes dashv{to{background-position:0 20px}}
+@media (prefers-reduced-motion:reduce){.arrow::before{animation:none}}
+.ener{display:flex;flex-wrap:wrap;gap:4px;align-items:center;font-size:12px;color:var(--muted)}
+/* comparador */
+.tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:13px}
+th,td{padding:8px 10px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}
+th{font-weight:700;background:var(--surface2)}
+tbody th{width:150px;background:var(--surface)}
+tr:last-child td,tr:last-child th{border-bottom:0}
+/* quiz */
+.opts{display:flex;flex-direction:column;gap:6px}
+.opt{border:1.5px solid var(--line);background:var(--surface);border-radius:8px;padding:9px 12px;text-align:left;font-size:14px}
+.opt:hover:not(:disabled){border-color:var(--uv)}
+.opt.sel{border-color:var(--ink2);border-width:2px}
+.opt.right{border-color:var(--uv);background:var(--surface2);border-width:2.5px}
+.opt.wrong{border-style:dashed;border-width:2px}
+.opt:disabled{cursor:default}
+.qn{font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+input[type=range]{width:100%;accent-color:var(--uv)}
+.src{font-size:12px;color:var(--muted)}
+.src b{color:var(--ink)}
+footer{margin-top:10px;display:flex;flex-direction:column;gap:12px}
+details{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:10px 14px}
+summary{cursor:pointer;font-weight:700}
+details ul{margin:8px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:5px;font-size:13px}
+</style>
+</head>
+<body>
+
+<header class="band"><div class="wrap">
+  <div class="top">
+    <div class="row" style="gap:14px;flex-wrap:nowrap">
+      <img class="logo" alt="Ultravioleta" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAhAAAACKCAIAAAB0AOTSAACASElEQVR42uz955cbV5Yniu5jwwdcIh2TTqakKlV3z52ZO2u9//+9d9+6d1bPtCkjlUTRMzORsOGPfR9OAAggkxRJUVXdJezFVc0WM4FA4MTZZ+/9M8haC4c4xCEOcYhD/FTgwy04xCEOcYhDvE/Q//iX2JZAnVIIAQDa/M8hDnGIQxzikDBctrDWWrAWrLVgARAghBCyCIEFdMgZhzjEIQ7x1wl0mGEc4hCHOMQh/nNWGBZcUQEWAABjBO+sIYy2gNom1aHaOMQhDnGIX03CsGAtGGutsdYCWLAECEXvyBZaW7RuUgE+5IxDHOIQh4BDS+oQhzjEIQ7xq68w2mICLLqrraSkzaYim4sqV1oZQnEQ03jAkyFjHN9+KWstAgTogKE6xCEOcYi/r4ThtnhrwFqL0B0NqNVUvPg2e/19MX1dNY32fDw6C8+/iC6+jEfnfvcnjbFGA4BFCBB2Y43DV3yIQxziEH8vCcNNIAC7/hhobQnZbvPTN/WLb/Mn/7p8+u+rq2dFXWo/JCcP66pQ1gIgGJ353dxD6GH2fYhDHOIQfzcJowVAgbXWWuimB4RACbNcqmwuioWsSzV9U18+K19/n18+KadvqqYynk+a2ihlqlItJs34IghjGvVZ3KN+RPeSRYuhOrD8DnGIQxziP93Q272bSxVWW2OAMoQ7OWPysn79Q/7qL/mbH4vFpFnOmmKpqlzVma5zraXFFPkRifo0HrLB2B+d+0en/uln0dnjcHwRhCnrdqi0tAgjhAGjA+72EIc4xCH+U1UYbst2O7fFCBnbzRazy/rV9/mTf10++dfl8z9n0zd1XSqEkBcQz6NRwsEiY6zSen7VTN/Ul36ZjvjJgzBbSlFrrezxgzDutzkDYwQU0AFre4hDHOIQ/1kSxkYMCgAhvJM8XD9KNGY5aVYzcfm0ePFt/vzP2Ytv88sfy9VUWA2eTz2G/ZSHMUMYSaGLTDSFLnNVIlVlStZGaVOXOpvJ6WUzOvWTIeuNOA9INxu1HSqXtNou1WEBHOIQhzjEf5iE4cSgjAPOWost7G3iALCcNE//ffX82/z1D9n1i2p+3axuhFE2CDkl2PdZmnppz49TiigStUKAtDCgQRsDFvKFfPOkzBfy6lk5OvVPH4X3vowf/i45eRDeZvkBAEYIsMUt9vawBg5xiEMc4j9GwnDHebJOHq47tPmLkmZ+1Tz7U/bdPy9++Jfl5bMin0utLFgUpZ7vsyBggc/DmEU9HkQEERCN8jzi+6QqpJBKCC2EzqYim4nr59XlgE/f1FWhCUUYo8GJRxl274gJwgRt3voQhzjEIQ7xt08Ym8k22B0xqM1O3ZS6zGS+kMub5vp59eK77OkfV6/+Ui4njawt5ySIaNzzekM/6XlRxP2QeiFlHFlktWJxytIhrwpZFCJbiOWszpeqrpQxUGVKSYMwAgTlSh1d+HGfRymN+5z7eA8rtWb5HcTSD3GIQxzib1VhWGstGN0OL/Z6UHWhZ5f15EX1+kn+6ofi6lkxfV0vZ6LONALsceT5LA69tOf3B1468pKexwOCKWrBVYhECU0kLwvJ5xQASaFVo7UyShmjbbmSr58UTakmz6vRPf/4Ijh5GJ59Fh3fD+CWFJUxFiHAuK2EDgviEIc4xCH+qgkDYYRgH55ktK0LXazkaiomL6vXPxRP/7h69sfs5lXVlJowHIQsjhmn1PdZFPO4z+M+C2PmhYQwZIxVShttCUWMY48RRMAYa5QBaxlDQU6E0MaCBchmolyKycuq99Q7exTmC6mVJQR1meFaW0zQO5QND3GIQxziEJ8+YWzEoGCDZ+2c15Wwq5lY3jSzN/V8Uq9mYnktbl7Xr38orp6W2VRihJMhTRK/NwyimPsB9QPKfUo5QgiJWpvSSKGl0EZbwhD3iVORogzFPc44jnusKkRVyqrUZS7zTJZLmc1FvpSiVE1lqkJnM3l0z+c+9iMa9WiYMj8kO5/CgIVDh+oQhzjEIX6xhNEVg3JNKMzRvhjUd/mLb7OXf8luXldlpmRjZGXyhbIa+QH3PdYfBMNhMDgOkgH3Q0oYsgZko6tCiVqJWolGK6kBAGGgHHs+dmmDcez5XtxnouJFLlbzBoFVQhuJpLRNIWeXIBq7mIjX3xf9MY+HbHTqnzwIzz6P/HCnSaW0QRYhDAc7v0Mc4hCH+EUSxp4YlDG2+6+zy/rFt/kP/7r84V+Wz/+czS5rKQzjxA8oIaQ/opTQMORp3++NvHTIox6jHBlrm1LXlcoXoliKupBSaGMMIACwiCDu4SCmccqiHg9izDnlHqEcY4wwAspQEOG60kIYJc38ql5cN2+e4CilvbF38iDMF9K1pI46TSqMET6w/A5xiEMc4lMmDLsVg4JdXoXj4hlts7lYTkS2ENcvytc/FC//kr/8rrh+XhULBYCihOKAxrEXxiwMeRizMOJeSByQSTRaNLrKZL4U+VKWK9FUSittrQUE1hrASDZIKW21McZqbfyQEoYpw3HKGUNhyqpCFJnMV6JYySJTTaWNhmyGi6VsSt1Upsr1cipO7gdxn/XGPBlwcosgYo1jGx46VIc4xCEO8eEJY08Mqu1B7W61+UK++r54+ofV6x+KyctyftMUC5nPpdUoCDljLIp5r+f1hl4y8KKE+RGlFAGA1qYuZVOqev1H1EpJDchiglzHC1kADNZa0ejMGiFUWVA/JF5I/YBSjqMeDxPW1DyIG+ZhhMAaA1YrYcGaupTzKyRqO7tsXnybjS/8s8+iR98kF1/G6ciDPbF0ZQEhhG2bMg454xCHOMQhYcDHikGBtQijjtmRyWbi8mn55F+Xf/5/5s/+mM2vaikNpZhSkvaZ7/Mg5GHEo5THPRalzAswYcgY09S6ymW5lGUm60JJobVunVodlslabK0FwIDAWmu0qUvbVIpkgvs4iFnc41HKg4gxjxCGMQVCgFLkB7gqqKi1lFYrELWqSz15CZSjwbG3uG6MtgghrWwy5I7o5zpUiB4kCw9xiEMc4kMSxjvEoFwCkY1Z3ojVVGSLZjlprl9Uz/+UPfvT6vLHqlwpQkmSkiDykp6f9v2454UR4wHlHqYUAxhRa1GrslRVJsqVrAslaqOVBgDAgMnaic/CGocFFsBaq5UxxiIBSoLWRmujlJZCewGhjBCC4pRznyYD3pSqykWeyWIpi1zWha4LYwE1pQJAmOCmMvOrZnjmp0Me9VmUMspQNxcepKgOcYhDHBLGJxCDWlw3T/+Yvfg2n7wslpNmNReLSbOYSGtQEHiex5LY76deOvR6Iz/uMz9khCJjrGx0XaiqlE2h6jUaSktrwSKMLFiXJ2wbbaoAa401ALbVLYe2Q6W1aWqZr4TnEz+kQUT9kMU9L+5z2ehi2RBWWq2ltKLWjFsDWGuzuG6e/Ntqfi1e/aU4fhCcPAxOH0enD8PBiXeQojrEIQ5xiA9IGO8jBvX8z9lf/nnxw78uL58W+VwqaawBjElv6AU+DwMvir045WGPhgn1I8I4MsZKoYqVzBeiWMmmVFJqY6xLEpgisGBty+5wjSnrcoX7BwCEAXe6RUYbKUxVWowR4ziMWdL3AIBywj1CKQawxmiwBlPrBVg0VhukFZaNun6hZpfV1TM+eRUsb+K61EZZJU064p5PXFY4SFEd4hCHOCSMd4pBuQP1W8SgslYMqnz5l/zZH7PXPxSzN01TWIKxH9Kw7/eP/P4giBMviLjnUcIBIauVkUK72qLIZLmSVaFkrbU2gABhwKTlisOWDmgt3OH0tLkea8Eaq5XRxoC1SmBrjPvPWhs/YpQia60fUkyDMGVNrZra1JXOl2pxI6pMKmGKFZNCaWWlsNVKzy7rwanfG/GoR+M+4z6Bt0tRHbLIIQ5xiF9rhdEVgyJ3ikE1kxflqyf56++Ly2fF7LLOZrIuNEbE9zFnLE54OvBHR8Hw2I8HnucThJAQus5lVcimUk2lRK1lY5TURltAFmEA5A7w1poWh7Vuia3/Bm1rbD3FANv5C0YAGLnEopQpcyGFyle1F1DPJ15AvYCGiZcMAqNNVapsXltb1aVpam20NgZVuZi+rkRlZm/q3pgPT72T+8HJIydFFcJdUlQYI4TtAUN1iEMc4leaMD5YDKrSjJEgYtERZ5T5Ho9iHvd4OuRJnwcJJRRJYaTQRSazWVNkUlRKKwMIMAZAgClCdk/p1m6SQWfevR18twzz9X9BCAhFeG06a61talWVBsBShv2QRj0vHQbUo4FHMUGUE7BGKWUMZx7UpdYKYwx1KetCTd+UfkR6R97scZQvlVZACD5IUR3iEIc4JAx4B4LWiUFlM7HYEYNqbl7Xb56UV8+qfKowxv6AJXGYDoIw5kHIg4Byn3AfY4KkME1lmkoVK1WsZJXLulSq0cZYTAAoQhi68+N1hugQBe9IGPbWz0CL4LIAFoy1DjRltJECaW0salOg1cb1l5hH0oHHfJQOvKpUdWHq0pS5rHItG0MozpdC1EbUUJc2n6vRPZ97yI9plN4pRWUPvalDHOIQv6KE4Q74e7ve6ka8/Ev+fCsGJWVjZG2LpUIWh6Hnebw/CPqDYDAO4gELQko5RgBKmrpQotGiVk2lm1qLRmtlMEKEIWwA0HpKYTdY2fX0ZKfC2CQFsJ2/rDtVFlmwaIOkcr/oaOcYE3BIK1GrbFE1tcwWlR9QL6DMI9ynfshM39aVzJdiOau1kqKRShqtcVWg2SVRDVreyDc/lL0xjft0eOofPwjOPov8PUc/A5gcVtQhDnGIX1OFYYztimTMLusX3+2LQXFO/JBRQvtDjxEWhl7S89Ohlwx4mBLmIQtWNrqpVbGULbWi0VptcwDGyBG2O/P12w2ot1YYdvdn2u7UDpIKALnpC7bWGm3rUtalQAjaDlXixX0/Sr0g4p6PmUcIRQgbhDX1bFNqKZBWIGo5vTSz6+r1DzhMSe+InzyM8oU0GgjFXSmqA8T2EIc4xK8vYWgrKl2uVDaX5Upevyxff5+/+C5/+Zf8+nldLjUCTGJCAh5HPIx5GHlhzMOI+yFlPsYElDBC6KaUbQ8qU02lZGNcwkDIIowwBkwsIGj/dPCzsJlwb1PFTsKwsC0j1v/FAtj98mQdWhuttFbGGgMICMNKKq1N27aSxg8opoh7JB163MdJn9elKjNdZLrMZFXUorYAyJuSfOmLyorK1rldTeXxfT8esP6YRz2+nWfYQ/I4xCEO8feYMKy13b67NVY2ejUVl0+rl9/lV8/K61fl4qpazWW5UGBxGHLOWRx5aeqlAx73eZSyIKbcI4CQ1qbKdF2p2kGhaiMbrZUBAEQAGTDGGm3BWEyAAGAKGAEga5GzowCwLn3c3ZLq1hfb3ND5md08Yx0bXGutlbHa2rW5njG2rqTRpiobz2d+SIOYByHlPvECmvT8ulRZ0GBSaS2lFEppa5A2rC7w7KpuKjt93Tz/82p837v4Mvrsn/r3viBhQjcQs1Y65ZA4DnGIQ/x9JQzYg0I1pZ5fNS//kn/7P+fP/pTNrmrVaEIxozTt8cD3w9CPIh4lPEppkBAeYsoRQiCFroptD0oKrXULkAUElGPKrAXUQpus3eSFzeyh226yu4WF3fkn6EBtOz/TqTBa3XUCCCMKBADD5l2tNdaqWopaohwIxV5Ao9RLB0E68IOIswBjigFZQBpTzQNTl6AkGA1gdVM1daGunwNlaHTu1YWKB7w/9oKY7k+8DxnjEIc4xN9ZwuiGEqZcqflVc/2ivHxaXD0r84XilCR9HoV+FHtJGiQ9P0p4EFLuYUytAevoFHWly1yVS1kXSjZGa20MGGWMsZgiL8RBTHmIKEMWrKx1U+qm0qI2WhuEAGFAaL3d25059608saaBb39or20FgIBQxDhhHuYeph5G4FKaLFaiKpQUCiHABDBBWmtjjDFGay0axX2KMKIMpUM/iEmv9qtcFLksM92USja6KaFaWWOIUrp/7E9fN8uHIuoxL8CE4kPCOMQhDvF325Lq7mqiMflCLm/E6qYpM6mVYZRGUTDoR71BEMQs7vOkz6OUcY4tWNGYKldVoZpSNbVuai0brZUFAEyQtUZrq6SmCDOP9k/Y4JSHPWqtLZdyeSPmV43WRqu2jYPQpr+0mUnYbWawu+XGtpiwHVoGAADGwDj2Ixr3WdznUZ+FCUMYimVz86ZUUherRglNKCYMO+H0ppJK6apsPJ96AfMjZ9TB455nLVSFWMwqjAtra2MlaiwgZMHTytaFWU3lctKkQ0qIT+iWwmfBgj0AbQ9xiEP83Qy99yoMaetCV7lqKm3BegEJfd7vRUfHaW/o+xHxYxwkhPsIwMpal7nM5rJwVYUwxlinCYgItOQ/AsQiL8DJiB4/8k8/C5IRA2uzmbx5WWMK1pocrBJ6Q/Dea+psqofbs27YUkastdYYa611pLyoz/pjf3gaDE6C3pEX9TnGsJrVzCd1LopVo6QmFFGGCUXWWKV004gis5gg7tMo9fvDkDDih9zzKWMUYQxgMFGECWuVVtgo4D6xFtWlLlayylXcNwCkwyg5VBiHOMQh/n5RUsZYrayW1miLMDCPeITFqZcO/P7I92NMfUDESqGbUpeFKjNVrVSVK1FppQwgIAQAARgAbBEC5iE/pr0xO37kn38Znn8RhH0G1vZWyo8I4YAJEIKyWSNqrZW1yDruN9juGOM2mnbnL27GbLQxxmKC/ZAMz4KzR/Hxg3h4GqQjL0gYxpAvA0BQrpoqlwCglUYYXKYx2milldIAoKS2ttXB1VJHiecHLIo9TCzzDGFaKyNq0I2rokArq6RRaj/bHeIQhzjEr4Dp3U4UEMaIEEwZ4j72YxKmGLCtK7WcymwmqlxLoY02WhtAFhNwkFmwTgncYgI8wMmQjh/6518Ep58Hx48D5mGwEA8ZDzALEGUIgZVCNZVW0gC2iGOMoFWT2rajtlXGtrSwTgi9/ZtWVilNOQ4Sdnw/evjb/unjuHfkBwljnACC9MhX0uTzpsykMTZb1Eq68YW7WkQsdu+jhMoXVV02i5ss6fujk95wnPQGEWPWKFUsJUZa2VZOCqxFzjvj0H46xCEO8etJGAiBk0giFBOCCQFMEaYIUyAMMAWlTV2q1VTMr5q61AhZyhDCQKiT4AMEoLU12lhrEUbMw/GADk758Jz3j3kyZO6NfCAYA8KgpSmXcnZV24lVymCyhtbCuxVBdioP9/NaG60MgPUjMjwNTh/Hp4/iMOXM2zCw2eg0HF9Ei0lVZqKppRRKSeNM/QjFhKylqIypSiUXylqbLX2EcJwGYRwGke+HHuMMk1bNBEF7xzDFh3xxiEMc4tdVYSCnuYQRdn8IwgS51o1SRjS6LlVdqLpUojKEAsbYkRsQWktCabAOuwqACFAP8QDzADMPd9/Ii0jUo/GABSmlHLmekkNKwc4cADYw2a7YVNuy2rLlbEvyAEs5DlOWDL14wAnd0evwIxr1eNznQcIodyYZFiHryikLYJxhlJtq1MI5iudZXRUijLkxFhBggjHBTpmq/YMRQgc/pUMc4hC/soSxpSoYx6BwiuOglLWlbRotam2MxRgIBdeG2oqMo3acAADgBJ6M1doqZZS0jsHXfSNMEGEIM8AYLICxFrdD7U4Lyr0Ybg1iWwdAszHKsFv+95rSgQlQhijHhOBbHw8IRdTDhLWvtpUTcR/auIu0CIHLlwCgpCqL2lsRC0o00hiDkHWpbc03XOuRHOIQhzjEr81Aaf2n3YKNsUoYJW1TayUMAksZAosQbjVitx6qsEPNdlN0JawSVkuwGpx7n9VgNYAD07Znc7vlbu+c1Z2+h93wure2St0iZJMu2nLEKce6XlXnTQ0AaiunNrfZLUZ38ylca45ygggQho0xdSXyDAPSTSPXSaUrZQWHbHGIQxziV+/pvd6JjbYWjFZt28elCqdM3hknoPXm2QUMtYd1jAla94cQAUoxZYQyQoiTHV//EuoYJa0tu7UyShprDGAgFBMKm39CbR9tnTPAIuRm9S3CtfumhGBCMaEYt24fO3mug8JC4BpN1l2aVUpLoQBrrc0nR0PZru4itLMg1Jr5vcfvgt3JWOvpyt2/vDW93SRbl1s/njJyxzX8vGjbm7sXtK3iPvpd3vuu/sQ3ZT/BK9/xcT7kRd7/e+9cc2dtf6Ap/a0l+na5zXcvv5+4qx9/hR9wnz/R4vlEy77zkT/EvnP77h1rUvThr/NpEga6/amQbYe8CG3bPwYwciDY9gMgtLmHdr3/I4QRJnjPuQ8TIARjjBHa7NPOUsIitFEQaXOPMVZrY7TBBBBZs8LbSQbqTDjWb4oQRvj258IE43bgsElr7XJFgDp7gbXG4XQdXMuuBxXu83bWyCdY0O3Ix7SZyCJwpdtPI6/aBp211sCmxnOXihECfAdv0JV91rS/4h5sjBHCP2MnXZNgOla69qPuzrY6dKul83Baa8BYa82m+fc+b7H9mfXACWH8kXi2tm9puoQhtN4cP+yVux9n+60hhDBg5B4D+CTf+/412/ZdnADoe+7H+0u0PcltfJQ7J48WY/nW5fdTL/6RV/g+9/lDls3++ul+O91FufsVfNiaR5tbZ9v9/f0fwzsWwHoR4HYIDb+EDSj9kMcYYC3e567YWIu2DaSONtSOL57VWiupRCObSqqGUg8AQDWghKkKVZdSNtpos8mYxlhkugpTFjkpKo46N8Yas+vh6v5f14JSRtS6LmQsOMagNRAGCINqoC5lU0lRKyW1MabL8LBda46O2K3LFhgjQtA2b3+6GsOtRcCIfORJHBFAQN7/VxAhH/Dz7/WaGBH8y078EUKIAP6b4grWWQH9zT/O+3/vn+Saf84S/Vu/+C+4bBD+sEfv0960D33w/2oJw77jXND2hTbiThtZp/ZgYLXWTS2KDC1nKLwCIIp5CABkY5UwdaHmk7pY1Upqd0xz3aeuV6uxljIcJjzqUUKxaFQ2b8pVo6RGGDBBgMAY23IpMACAFDpb1NPL3IAhGLQBwhDGIBu7uC4XN0W+rOtKKqVdNrJoO8Tosjy6fPINDOydd+UQ/zliWx8cgG0/1cxxO+PHvYLR9md2Ow8B/6lmGLYrKbvt+myWku1IdjiBJWs3Bau1VkldFWoxE+y1ANpUpc99bCyoxiipm9Isb8RiXolGImQxcZ7c1gDCCCyAUUYb64dkeBqcf5aECVvNquffLopVI2pNOSKUIIysNQAWYwQEIbBNJeeT4s0zkuc1IWA0YIoxBiXMalZPXmeLaVEWjVLarotBay2yaMsNRFucVsdgY+fjdzrZh6fhP1kYbZ3mGHxIn/1XtettmjlgAQN8RI1ijdXaIIQwOeTmX83Qe9fYDtZ75SZF3PrHHc6EVUqVpbAza2klTZ0tPe4RY60SRikta1Ms1eJG1aUyxjrCBybrrpexyondEtQ78u//ptc78iev8vl1CU+sbBQAZhwDafdyTJy3hq1LMbvOiW/COcMYWQOYYIyRkx1cTMrlrKwKoZRuhy4/UWHYjsrhQf3j7yF2RIXfvwnwa4qf38xBGDF+cC3+1SUMuEWx3m/XQLcvtZ5buvJDa63qRq2UxkhpUeScc2qMUcporVVj60LnM1vloCRCCFOOCQNA1mhrpFXKgLUYQ5jQwUkwPAmV1EHMEHJKUFYrgkg7hUMYwIBWpirEYloCVd6SYoSsdexCpJSuC5kvmnxZN7XU2sC6JWV3wUNwh9/fbfu/jxxx7xiQGCuFrjKxmlfLWVXlQivDOI1SLx366TAIE75hk1hj98AnrWD7ss4WdZEJ2SgA5Ic07vnJwI97fhCx7pnRWdVm83oxLfNF3dQKYxTEPB0G/VGY9P0NK/7dB+qu75bWtsya1azOl3VdSiW1XfcUW8TGdhhuu/vRdkgKWwwDQsB9Gvf93ihIB8Fmx6lykS3rfNEUWSMqpbWxxg3VUFuN3sZsrLum7g0YJ2HMe0fh8DiiDHcPwu9ouXTvg1YmW9aLSbmaVXUpndMwxohyEkQ8GfjpwA8Tvh04r1/ZHbC671Kuv/Fi2YhGYYy8gLlvLUq5FzDaSWlrqPf217UydaXKVbOa1/mybippjOUejXpebxAkAz9KvXaFNHo1r5bTajWvqlwYYz2fxn2/PwqTge9HbI+rtOHD7lUEolaLm3J2VWTLWgmNMKKUYIJaUpRtfZcJw2759cdh0vO7r6C1dfPYPV1O2ehsUS+m5Wr2Xlf4Uw2RnUl7VchsUeWLpsyaplZavXPZ7AKirAEn/IMJ5j4JYx73/LjvBREnFLt9xm0mZS5ErR3v2A2urd1d9hsk1Br75c6p1oBDXVJKwoSnAz/u+0HEmUe6Jd3tBaCkaSpZZKJY1sWqKXMpamUBPJ8mfb93FKR93484pZ94fEN/OkfYTuEAO24V7ttpW1V2A+1yT3370waMUdoK2VSo8hBCoLgxxmhltDFKmqY0TWmbGmlFuYejlLIAaW3qQja10UojAISBMuz51A+p51PKMCLIGKuVMcYQjAknYAETaAppjJFCNZWsCmSscZgmhDHCyChdtxNvY/QGXLIGDKItqBVsl4yyZaWs7wBYZD/im7B2X8PWaFPn4vrV6umfbn78083Vi1VTq7jnnT/uP/7t+NHXR57PyPqUZqwFi0jn0NZUanaVv3qyeP7d7PLZPFs0mEB/HF18Pnj01dHFF4OdhGFASbOa10//fPPDv12/+H62nJaEkuN7yePfHn3xTyfMJ1sZlfVOeTtztE1Dst285pPy6Z9uXnw/m10WVSGMNhYAjENdI2tMu6cYu04jsJES2JxGXUFJKO6NgovPB5///tjz2SZhZMv65ffz53+ZXr5YLSdlUyljDEKIMkKoe/js3kjQAW/axIQhiL3xefLZN2NC8egk2ixyYyy+C4qK0H5qbGp19Xz13b9cPvvzzXxSGm0cLtyP+NFZ/ODL4ePfjrnPGEfuS95gfhxGo4sLyFfNi+9nT/908/LJfDWrMEK9o+D80eDBb0Znj/ujk4jGvHOqAADofu+iVvNJ8ebHxbNvZ6+fzpY3lbG2NwjufT549PXRg98MNwmjruWbZ8vv//3q2Z+m168yrXRvFN7/Yvj5Pxw/+vqIcXIrYbTnEtLFNFo7vy6e/GHy3b9cvXoyL3NBKA5CRhmxYLVs3ZcJxX7I+kfB+ePBZ9+Mw2+2Zx1jrJYGaAuO6N7VupaXL5bf/8vVj3+6uesKKSG3DitvAU9ZsMbs3Khi1S6bqxer5U1Zl+9aNt3aCCFktJHSgLHMI+koOLlI7302uPhiyDghFCupFzfVy+9nr57Mr16sVrNKNhowYgxjgh0srf3fNm+gFsbW0dHQyjS1MsYGITu5SB/99uj+l8PxeUKohzHpPrldegAANLWcXhWXz5avf5xfPlveXOarWW2t7Q2De58PPvvd0cOvjo7O4iDmmOAu1PBn9gY/tMK4U9MJbumNb8GpCCFCCeXMC3AQeWHCGSdua3B+2shqkWlCLfZwMuBH94IgJU0lp5dlmQkpNFjbIprc8QSBsVYrraQGhAlFcd9Lhh6huFiJ+VVRlcLVwkHEg5i6POC+JK0MJthqJBsjqMYtBNhRN+74FG+pKj5xhdHUajEpn383/bf/38unf7opczEYR1/+0wn36Og0Ht9LYI2EcE9yN99IoVfz+s3TxXf/+/KHf7+aXRWYoNOHPVGrKPFGZ/Hek6aVKVbN5bPln//5zZ/+5+vrVyvG6cOvRtba4Wl8+qC3c50/MTRGm4SxnFbPvp3+4f9+9fKHeTavtDIt5Jq4c9xbiSto/cBijFyxRRk+vkiLVZMOg7NHfQBvU2Fcv1w9+cPkyR8n1y9WZSaU1ACIOkcT0/Xy7SQMbZ2MJqE4GQQXnw+0MlHqhTFvUyn6AMxHXcrJ6+wv/3L1b//Xy8vnS60M9yjjJOr5F58PjLGDcTQ6ixnH6yYnoA4T9vaB/cX3sz//85vLZ0uj7fAk+vz3FQD4EYtTL+wkDGssAEBnB68rNbsqnn07/cP//Xr7vT/oGWv7R+HJ/XS7Qho9vcyf/GHyb//fl8++nUqhju+lxaqJUm98nvSPwjubUV0EvKjV/Lp49u30T//zzf/+fz9/8sdJtqgJxWHMGSfWWiWNE2SjjESpd3yRzCeltdYP2f0vhtBa1DiqLLq9umSjZ1fFkz9O/uX/8+ItV0g+oMLYpf1Whbx+tXryh8mPf5xcv8ycr8Hblk03YWx2c6utH7HxveSz342thXQYDMahF4CSZjWrXv4w/9P/fP3kj5PJq6wuJCLI8ymhbcJ4x5W6G6KkKXOhlUn6vnv9KPWSvh/EHNgdGI3dk2Lx/LvpX/7l6sc/TV7/uJhdFcbYo7P4y388AWuDiAcR4z4lO6Xqz+2s0o9lmqwt75Dd1v97KrLWAraEEBb4UR96J2x4EqQDj/kIDEhhldJCmGIuiW6sUMiQk4vo/tdpMuTZvDbGzq9LKZQS2rkbOYlDQKCkrivZ1BJTFsTs9GF68WXfC+n0snj2R3RzmXkR6R+Fp/d7cZ8DIDCts54StsiaZVAhwLoxda5grQWyaRe4MgltmOe3HvYds79PQdnT2oha5ctmPikmr7PCNFrZ8b3E5cudBX3LYMMYKxtd5mI5q6aX+c2bHBPEA5ot6rqUe1os7otRUle5WE6rmzf5dbliJU2u/GxRN5Vyo+D3LpW211AVcnZVvHqyePrnm2VVKmhR0gTcTAoQYAqYgKOWgDFWg1FgDGgNFgAwIANWgGaAq0KOTuN8WavO9Supq0Jmi3o+KaeXeb5shFF6DXBTYA2Y3Y4UcrotzpyFAe3NAmtsEPEw8QBgfB73RmEQsc0R7O7e1Hp1K6WrQqxm1c3r7M2z5evLuQbDgVIgUeJhjE4epNmiFo3yQ+Ze8B0PJ6GYMoIxUkKv5nW5aqpC+qE3Po9PHvSO76nus723pxltq0LOJ+Xl8+WrH+avnsyzeR0m3ug0xhg5JuyO6XKlskU9uyquFysJCr/By2lV5cLJ+Hdr3y4A1xibzavVvF7clJOXq2ffTr/9X2+e/GHy/NU0gxoB8haUArYA7qtEABRIgv26FO6zy0bPr4v+UXh0FoeJt2kDrlks6P2u8Gc9a1oZt2wWk3J6mWeL+h3LZk+tW4OpQFqw4ZyXuQgifvawX5fSPSauu7uYlG+eLZ99O32zWJQgEKAAGAEnxAoEMAVC0XrZa6PAKNDudmFACkwOjQLdz0PGyf3Ph8WqkULvJZs91qG1tqnU4qa8frl6/XTx+uni8uVyBoUFq17quOcdXyTHF+ngOIz7Pvfp/inwl6gwLLjO/rYptW492c2W2en7r3dWZBGy1oDjuyEEjJIoZsOxd3LfP34YD489L0TWgKitFKap9XLSYJMbUSLAxw/Ch1/3+yf+7KpczZvXT5aAQBujTTvJwBQhBMYarY2xlnKSDv2LLwdf//eTKOWvflgUq6YqhRfT4/P04W+OBuPAAljdyl7JBlbzehJmYKDJZTarrQPMIIstRhhtGrjbRGE7ZHe7my730779KPZoC5OnDDNOuU9VqblHXNmLMdr5eu/azRBGhGDGCPco9ykhiHNCKcYE31V8IoQQpphyzD3Cc8qBMo+4A9cvMdd1lG0CmGJCmet6g9YGiQ2V374/fYRSzD3CfcobDZVV1ql5mb1u9IaftZYjQAjAaJsv6hffTwFBmTWf/W78+JuxH/Z2CvZ1B2mzXTsbSKNNXch8XufLpi6VUQYDxoAoEOSSWd7kiyZfNmUmooRT1gKDNvd07+YGMRufxfceD25eZ4ubSgkthc4X1XxSrqZVVQitTHfQ0n3mldRlJpY35XxSrha1FJr7dHgcnT/q33s8GJ/FQac6QQgIRZQS5hEPKALgHqEcY7qzPFy7daf7n4tXPy6efzd9/ePi6vnq+uXqzbNFvmoIYB+YU1DT69uO19x8a2xdqsmrvKnV9cvs2bc3j78Zf/M/7j36yuueMG4rZFOG33KFP5dB4pYNc8vGp+9YNp965SMCmBHMOMEEgwUlNQgwYNBH88EtAAIlbZmJ5bSaT8pi1WhlGCWR8ixYzqgSejmtJq+zo/NkcBxHqdftr/7MjEF/Djd5U2HY/XO3dQmDEEQpDSN/OIrPLpKLL9LxRRAkYDXUJYhaV4W6CcsmQ/lUa2n8iER91ht5Suoo5X7EgogRgvyQEUq0AlkbrSwlJIhYlHhhwqOe1xsFo9MoSvlqVnkBoRyHMT86Sx98cTS+FwOA0UAZEApNBbOrAgOuMjG/KgnF1lpjTPdZ/itXGG7+RjnxQxb3vN4wYJykwyBKPS+g5Kck0xFGlGEvoGHCk4EvhcYExX0/iDn3yB61fr19YM+nUeKlw6CuJOM0cXM2Tt4fbt+9KoxRELHhSXTvs7619pO0pE7up3HP7w5+CcXcp0HMXc1OCFaS/3RvYbc3pbWZvMrqUlW5AIB0FAzG4WbM0+0gbVKG+6SulbecVvmiVkJzn/aT0KUuKbRWxhhbFSJf1sWq6Y2CNmF07ufe9xjG/PgiLTOxnJaLaSVqVeaiqVW2qFfzyhWXm4TR/V2EQGvbVLJYNcWqkY2ijIQDfv64/+jro4dfjY4v0jDh3RXCPRrGPOn7vX4ohUqHQZR4rnOyc1W79292XTz/bvrH/+d1t5njhyzuDe684d2vMl/W80nx6of55fNlXal0EKSDYHgcvQNMFUTvcYUfHpjsLBuM0Xstm7taUmcPe/1x6IfMPVaYID9k/XF49rBXFSJ8xX9mS+r+F8PRWRyl3u0nccMVcwtUSV3mYjWrskUthfZDNjqNUxFYY7lPKSdlLmbXxXxSVIX4tAC/D5th2M4wGLb/22HvwVpxw20YgDHGnsfiJBgcJSf3An8IAIAYhD6EQNKSGIEvoxIANZXKl002r8OEika7Zu7wJEIAJxdJGPmygnymVA1RHJze73mc8ZBwnyplikwoqRc3pesJUIbTfjg+i/3e7lMaACVRPm/CeMW4wyF0C4ftabf7MWH7l5/mM37cIQhjRChmnHCPKOmO/IQQ/JM7uBujEYIpa38dE8TaCuNuutRGaMuduRijm2rm/RdW90fdmPrhVyNM0PnjfpULp2zvht5SmToX7pstskY2ChDyApr0/GToJ33fD9hm6C2loRT1jsKLzwZHZwn3aOcBw4Ri6mxaKOYe8SMWJV7/KIz7nh9ydtd5HGFQyharZjkp55PCrZBi1QDA8Di6+HxwfC8hBFFOuh/f3mqFy0Zn83p2VcwnRZULTFBvFPRHgR/yImuW00orUywbB0YaHkfebu94vxBF4I4FR2fJ+DwZjMOrF7zMhWt5LadltqjrQno+Xeuj7NRhLbKukFUhpFAIoyDm/XE4Pk+OzpJ0GHTvG0KAt8uDOhvNrYDbTjG1hd+UmXj1w/zZt9Mf/3jz5A+T6WUBAOnQP76XnNxP+0cB5RTt6q4gBHUpZ9fF5OVq8jpbTCsAq7V1H9MPefO5SodBGPM9eJJb/5S+9Qp/Jjh4u2wI5h7xQxYmXm8UJH3PCzjje2i0tqrBqD3BuF04HQWn99OLzwfpMHCJnDKcDoOLzwcIYHQa7w29ldJVLlfzanlTOUwmRjiIWToM+kdh3Pc9n+4NvY8v0se/PRqeRJuctPO4dVaTaFS+ahY35WpeyUZ5Po17PkJgjTUGANkqF/NJMZ+UZSa0MjtLEf3CWlLd3gzquKZuVVA6JIWN4mxHasduztHk1uwKU0AIaWmqXM6vS2ttmDIptBRGSZ30uOf1w5iPTqPBUaIlKhcaND46Scw3sDgtpVSeT7J5/fy7uTX62Z+nl8+W+bIZSdPSsm73jgkghDbEdNs5UNoOBqyD++pO+XcG4OjTjTGcIIpWRimjlNHKOLvZn2R9rMXerdFWa6OUwRZpZfRGKupuJImzpDVKGoSM1hvFrPfOFth2E8ZgHBJyfHI/rQohhV6riwEClK+amzfZqx/mz/8ya2pZFQZj5IXs+EH66Kuj+18MR6fx5nyqlCYEewGNUy8ZBl5A93pb2lgplKiVUiaO2Og0efjV8N4Xg6PTJE69/RkLQghBVcrJq+zpHyff/evV4qasCtGUOEsr19SeXRV+QKOe1ybYtSDl9s5bAARVKeaT4vrVavI6z5Y1AugNg/PH/Sj15zeFFLpYNatZNbvK59fl6LgKItbtC3VBQe7vCCHu0SDhYeoFMWcMG21dwphPyuW0KrImSj1OiFvJG9YsgBt6yboUdSlFo8FaxnAQsTDhQcL5Os10hxNOik0po+R2ddkN8LPTOnPT1Mvnyx/+MHnxl9n1y9V8UlZahJT3hsHDr0Zf/uPJvc8HSd93VVRXcHAxq374t+t/t3Z+U7rbb5SZXRbf/e8ro21dyMffHHk+pRRbZPe0sd92hZ/kEdPGCqGbWiplopANT6IHvxmePx6MTuMo6aLRrBvhdFF2YIFQ7IU0Tr1kECR9z31wykj/KKD06OgsLnIhd2G1TaWml/nTP09/+PerbFFVuSCMpKPg9EHvi388uf/lMO37DlbrRC4oJUHMe0M/7vt+xLGbQq1bOF2rHa1smYnVrJxPitWskkLHPa83irhPtDJ1IYusqQq5mJTz6yJb1E2tNgAKtFVp/ciy40MrjNvnbtipMDZyTF1pkKbJlsXkkvipPboXBjFoBaIGrUxdqps3+XJa5It6eVOLWnsBUdIwToyC3ij0QzYYh71RsMY+W8bp+F4S97xsUa8WVVWKciVfFPMyq189mU9eZcbYKm/mk+LNs/z4IgYArYBQIBREDbOrfHqV5ataNMqpibidyG4G9XdVGJ+EgfETOcO0+77Rxjm/vucOvsk3Rtt2HLejjnc3kqTzXsborQTex1QYBCV9P+n7Gymw7tB1PilffD8DC4ubavJq5a6Qe2R4HD38evTb/3Z+8flgO9lWhmDkqg1tbLcl1W7lxipppNBGW8pIbxTc+2zwm386vf/FcDAO92BFrj4rc/H6xwXGaH5TXr9cEYKNtg5En82rbF7Vx6EDpWzruW6mRi3YZn5T3lzm80lRl5JyMjyJLj4fpsMgiNlqWrsG0XxSzq+L1TzpjcJuwthx+lo3vjBBXkCDmIcx90KGCZJCVYUoVk2ZNXXpeELkdoWhhG5qVZdS1MpoQyj2QhbEPIi5F9Dbfch2dXW+7o3M3+Z6NoSYupTTy/zZt9Pn306vX66KVQMWAsJHp/HF58Mv/uH4d//n+cOvRv1xtJPO110sz6f5ss7mtevjcY/my/r5d1OjDeOkPw5HJzFleA8Ve3tBdq/wEzxfxirp/KQt42Qwjh58OfrN/7G/bLQ2GL+vjAmhOO75cc8H29sjf7gF8+rJXElz9WLpANnMAGV4eBJ99s34d//n+aZBZ7R1X9mdm7j7j92M4U4ny2m1nJZVLhCCuOcf30vChItGL25KIXS+qPNls5pVjhq1TRjoF6sw7obUIgv7j9QmX3Q5KuvbZ62UMss0vKrLZvnmFQtiRpnRGqzBlGGMUT5XVy+zMqtFo8Gi5aT2Q5r0A+6x3oD3jvzhaRD1OMZYa6OlQYggzI3yqzxY3Pjzq3Ixr5azYnZdLCZVUymEIVtUz7691lbGfa6VEbUBMAiDNVg2qlg18+uyKkUrVL52zdjS13dJKPtmF79g4oC/A3ow2d2wBuNwNa+j1OuefB1gP+n7g92+9iZDIIzoWwBLm68Ik7Y7nw6C7mO/NzwIY372qD+7zMf30v54vrip6kJaa6XQolLCkbnemS21MmUuFjfl7LrIFrVWJu77R2fJvc8GvaMQE/Tm6XLyetVUcjmt5tfFclaNS9mtKsDunKY34YcsSr1k4Mc9zwuYklqtr0oJ7aRht0aWjtikTVPKMhNlJppKWQteQOOe58h6fsh+ztfnAG/zSXn1YnX1YrW4KV2LPEy8+18MPvvd+LNvxg+/Gp086N3568Pj6NFvj5azSjTaD9n8uigzkS/qMpduNOUIj15AMUZ/VZ0+aA9krjKIUm90Gp8/7u8tmw9gCO7Lue9/nCBig3EYpR73CELg8p8be6TDnXHO5qG424tgN4s40NdqXi1vymxei1rFPW9wFJ497CVDv8olwmg1r5fTqsxENq/zRV0VQqvAdaV+/jCDvhvfsrVPgLWM+C5Db6s2tWH2Wbspoi1YJWW2knkt3rySxmitjVbKWGCMRgmPez6ytJgb0ZhWDhawNYhx2h9F/aOgf+ylY+5FGGFwjRRXPVuNRMXD2PM9DxPSlMKBxxnHxph8Wf3456vrqznCti5VXUolFIClnPkB9wIGFmqXMKBFE7qG287gvstY3FROdlNmoTt2mUMWuRVKGSW1Vo4p2WGEaKOkkY2G5MOAIk4F0kLLkpVCN5WsCtmlKO6vcoZd27o3DKM0d2hj0y7UO0+UOyf6plb5op5PyuVNWRcSE5z0g6Pz5OR+rzcKZKP649ALWL6os0U1vSoWN1WZCyUt42jzwHc6Uttyw/Np3PP6o7B3FEY9r6mlNlY0StRKNloJbbRpUb8dsFY2r1c3ZTav6kIiBGHi9Y7Cwboz/rNBqGI1q+bXxeKmKFcCANKBf/Kg99nvx5/9fnzv8+HgLbNrF0en8Vf/5dTR9b//l8ti1ZR5gxAuV36xaknRcc/Da6+a7k35O4sNGmKraGDBaKOEllIzRt6Lt74LpReNyhbV/LqcXxfFqjHa+iEfnkRnD/v9cZAthWj09csMAJpKZot6Oa3yed0chX7Eu5g9h5f6iPzxoRUG/FSFYbuTMGutNsYIqZqqaaqqaOpSikZZC55P04HfP4o8z1MV0RoTSrhP/ZBFidcbBqPTsH8cJCMW9DD1AVM3kyDWgtHWKOSFhHNGMDHW1lWTZ3WxqptKNLWQQi1nKi8qrXWZiyoXolbWWi9g6SDsDUPPZ0pquzMksHb/cx0qjI9RrNtrSWXzulg1a8kQuynDZaMdrKh/FLxPS+rO99LKyHV/ppswnKLMpslutHVQHO5TxombVjgdC8oJYfg2KKW71utSrgv8RkntBaw3Ckan8fAkSgZ+vqx7oyBMeL6sy0wsbsrFTelQGIzj7jz5NqPC0d+cWklvGJSrBiyIWlW5qArRVNIPmUe3WCklTZE1i5tyPimzucN3kKTvD4+j/lEYxvwjNLJ2srs0dSnzVZOvmjIXUmjmkcFxdPHF8PFvx/e/HI5O4y6uXyuzx/LzQ3bvswEAiFovrourFytrwVqjtRGNqnJR5UIKTW654/ySa3ILfDLaOkG56WX++scFIfijW1Lv0CNxLal86Za92QyJjLGi0WUusnn9/i2pbjSVcul8Oa3qUiKMwpj3j8Kj83h4EgVxk82rKOGU4row685VNToVzKNdXS/7sa0p+kE0791G/s74e2cT3c7SLEKIMcqZH8Qk6QdaG62MtUAZjhIv7vkISDEzIlMWLGU4Sr3hcXR0Ho7O/XjIgxTxCBBteV/tLVbIaAAPCAGwXKqwrpIyb/JFtZqXTQOE4ijl8cBDBNWlrEuhhAGwlBM/4A6WY6RFqDulh+0svCNWC3fjow7pYr9H7IrudvxOtucGKXRbYZhuhQFukCCFdoi49UavCcaOq2HR20dzdguAYZx4Pt1rxexlGkyQtaCVUUIrqY02rv/ghD0cge6OhGEBEGhlqlzka7Sr1sYLWDoInNJRlHhRz0v6fphwjFFdyOW0XNyUxaoRjdrksDv3IPfpgoj1j8Kj03gwjhaTsi5lmYvltFrclNmydmOJ7gFzNa+nV/nsqsiXjVYmiPnA/frRGh9sP75P3UKkclFmTVVIp9uWDoOT++n5o76bHbo9TmtjLRhloE0Y7XCYUBxE7PheenI/G53GSd+fBUw2SmvTVKrKRV1I2WjO6V8xYbTKpIRio7VT03n27VQpffV8FaV7Q+8t7MuJ2SCMuDvdjqN04Hs+XeuDWbBgrLXaGuNW6vas7ApErUx7SELbZe+GcKLR7heMNhi3Zn6EIKdKgtAd9AtjbF22bc/VrBK1cj2uqOclA783CplHb94EUcKZR4w2RdbMr4vZVXF0noSJt5MwPpaP8Y6EsRFLsui22feOY+NOSwpagzznTQSM0TBhyShNj1gy8PyYEoqMAWsspQQTnC/Ei++W5WLVVApTlPS843vJyYMoHVMeIRoA8wB2ZzVt8qAAAL6GnuZSpmUuppeZ+5rD2Hvw5fjhV0dxP1BKi0aBBacIJhtVZvViUkzkauNG3rLSAXZGNHZHxn3tpGQ/PUzq72J2gQlY69wSdyoMQrCTCu4+BggBwi2YeG9zJ60qnNX2rV3dNqljIAQzTryAvaMftem0ZIs6W9RVLpQ0mCDmEeZT5hHqeFV7I31kLVirbVO2pX02q6tCIkBhzHujIB36Qcy5T4KIx30/7vvMI66/vJgUy2lZZiLu+W6i4+RJ9pKH+79+yIfj6PheenS6mLxc1qXIl83kTXb1ajU8jZNekPT9DdyzyuV8UkxeZTdXeb5qEEJx6h2dxcf30sE4arMm+kDwwk6LXItG1aWoCumKQkeySYdB7yiMe77bdDBBgDBYMAgcLsjtrZvb6AVOPTNIh0EQczd9bCpZl7KppRLOuwz/Fc5gLbwfgGBMCJag61JMXudK6snrLIjY7jZqu1+TtVYpQwjqjcL7Xw6//MeTIGJewDqn9BYhjG7VJYRi7Ii3CO10UzFgggjZLnuzln+30Nr53VFngAXj6kuxmJTTqyJb1ErZMGFBzIOIBzEPE848kg6DpO8HIQMEZS6m18X1q9X4IukdhWHCtwy+jzTE/AQVBuxXGC0c2ABYQhAhNIr849P43pfpvS96o7PQj4jRIGqtlRW1vny2Khf2+seyQooyHPe84Uk0PPW8FIACohbWep+blNgWgBiAAgkgAmJNWCySOPXd2vUjfu/x6Pf/4+HxRQ+glbQjFIlaz6/z1z9On9nJalp1eBhuQINgW2HsE1B2KcSHCuP2XBG19CIE3cMjJq3a2t5jgNBagq37w7b9YWsAvYX35EAjFqzRVjSqzMVqXs0n5dtQUlUhX/+4ePVk/ubp4uZNli9rAHDKtZGDtLaMnB0YvttHlTZlLlbTajkti1VjtPFDNjyJTu6nR2dx3PMYJ8nAH58nJxfp5OVK1FldyNWsWs0qp/FAArpXYezdB/cKw5NoeBxFqTe9KspcTK+Kyavs5H4xPk+6v14VYj5xYK2yLiUmKO55w+PINcd+vpZ4i+2W67GTtQgjyonnUy+gXRztGn6K13YyYDofzbUl3bQ8iLhT9tXSKGm0Q80a+1c2y3IVhuvqNFW+mpU/ST/sMknrSg5PotOHXV0AaMsRDMjue0y9Y9m7Nb/3jLwb6uryulZm0/OsCkkZTgf+4DjsHYWO6mstjE7j0VncH4fTq7yp1WpW3Vzms+vi5H4PTiKEfm5Pin6guHnXFmLbduhqS6GOgYRr3lFKg8BL+9HRSTK+AHAloCCqgSqj5SIMQs44oQxzTvyABRH3IyA+WAQbvHYXh25hjdcilnBEMAKFk57vhy1+mRAcJd5wHA/PATACRTZvilGSzUrPZ6QV/t0j5e2YfHRlUfbAxYf4W9nkYYwIwUZrUavFpHz5wxwQzK6KLg9jI/HidPouny2++5erH/84uX65KqWIPc8puveOwi6fwO1iXZSXksZpfC1uyioXGKN0GJw/7j/8anTvs4HboMfnyYMvR7OrfPomzxdNXclsXjtSVV1IxvA7GHzWjTES3hsFvaMgSj3KcN5SOorFTVnmQmvjKjatt2Ct1bySjY5SL+p5vaOwNwrCxCMUbzTk0c8wLbedJe9Yde3257o0O7SNu1w4N67GBFOGCcXOFvP2i//1ZxiOJt1UWkktlW5AKdB3oh3W4maKAqkKeXQvyZdNV9zsr3No3NO0L7NmcVMup6VsdBjz43vJ+eP+6cOem4ggBOeP+2+eDV49mU+v8ullsaF8F1nzSRh870gYrZTULh2hyxeDtST4Vt7c7eNuQ7fGWkDWWGucMK0WjZYVYRRAg6xANCAaUFIjA47n6cSW0UaeBsOuxMP2+0SAAFlMwAJCGBgHximlxFUYTjhdCm1qAgi0AqoAUZAVyEYrueWpbaYXG0jC+gNYuzOh2cxlbPe5+DR9KbTv/9rVVH/vh/xXYQDnTgOEYkd1vn61kkJdv1zd7i04QXUESCm9nFaXz5dXL5Z1JTmivaPw6Cw+Oo9HJ1E68AlFbxWFLeV8Ukxe59OroiokoTgdBsf3kpP7Pb/TBDu+SO49Hjy/mDnp72xZz6/L+XWZnVdeQAL6dgYfRoggP2TxwE9HYTLwvZBly7rMmsW0dGWNqFUQcacaW6ya5bRc3pTlShhr/ZAmfT8dBfHGNwKB0ftS2B9mr92yMjbA+O5StB0Xk7cWmhsvDee/Yo3zw3Sre+fFD/HW4zlaW4Fiu6k8NgC21bxSSqdHwegsHp+nw3HUBZGPTuPRWdIfhdmsbiq5XMPBPwmDj34gSOonK4zb02+rtZFC1aUolvUqjIIGtAFRgZJGVKoppVYaIXD0faf1Zs0mMbwll6FtTxBZpzCH3B+XiptKllmTL7m1oOSWuFesmqZS25xx2wbqnRUG3MJMfZL1sQfFQmj7570e8l+HZ/Kt3oJsKrWclu/UkkIIt5NGxsnJRc/pbz/4zej0QW8wDnf52PvnxmLV3Fzm169Wi5tSNKoFWWEkGiWFdilKNroupGsuuf/ShbI4na53M/gIxUHE454X9/0w5oRg2ejCiamsmqqQ7hWqQharJpvX+bKRjSIEBTGP+37cay193iaF/RHHl33Mq9mpOX6yObnDRd1wSG8djP5WPAzK6Nu0pN4qbnaRxj2PfjqNjfc0Qdi6hlTKQSFc5WqNpRRTRqy1ZS6gg84StcIYMY9igutK5uuF9EkYfB/huLfTm+lssHv8DLtdbBvSv9Cy0ZRabUA2qEXoa7MB0LR7H0YId0Zidn+M4F6+vaEYYJ0wALXqJU7OVkmjhDYWlACjHZQTKWFaToDZGq9aQFumxWaG3wEK2x0/QfuzkCh38a7thpttYeuysplPWfuWFsC21kb47z9nvH9vwclKE8AYEOM4SrzBcXz2MB3fS3vDIB0G44vk3uNBOgi6+/iueis0tVzctBS21axSyngIiUZNXmV/+Zer2XWBUbstNpW6erFc3JRaGYyR0aZYNfPrYnFTHp3F78ngi3teMgjinsc9UhWyytspfbFsXLetWDabub3WJoi2v9IFiX3yWrN9JN2RtH1M3rrYOj2xrUfWdrRu/wYTQHetDpUHAM7ZcDAO01EQhLtaUrDFOrXYbmUwxb1RcP+L4Z642S/4uK2b+9BhAs2vi6sXq5s3mcN2OxuSbF6//nFhjL15kzkNBaXMm6fL2VXeVFIrIxtd5aJYNuWqqQqhZeBa8R998fS9D8BrBp/dNnO6Pai1qdRG32hzqOgWuxhjjDGABezkoTF2jCRtjNZaa22drMheAry9yFw3CFkwAAasgVZ8Zq1xgRwnC2Ns2vdq33FjBthRZUdrafaN2gnqtp624BzYNTj/NNXnVrHKbuxKO/BTV9HjO3KG3QEd3K450K8Hx7X3UREgBphSAoAYJ8kwePT16B/+Xxef//64Nwopw35Io9Tvqrp2ObetG+u8vnmTXz5fXr9c5cvGWTRm8/qHf59M3uR+yDZ7szG2zMTsqqgKgTCyFopMTK+K+bUjZLwng88fjMPeURgmXl2qulT5oslm9WpWOTDralZlszpfNHWpEEItX28cxr2fy9fbazXfrjY2xa6rNDCCO2lf3RnGxoipPc105Nks/PU6qK7EdBMglzAc6vfh16OLLwZHZzsSZMaYjaHAnmdw0vd7R+GuuBna3KSuNNanOkNuFZcQFKvm8vnyxffTqxerImuMBmuhzMTls2VViKd/nvohbXEEFspcFKtmcVPWlZRC16UqVyKbN/m8rgbB2oPvIxl8P7/CsHsVxq3jk+1+d+0+hjqbGoBxvF+lldJaaaON0RhrsHhnsW6zyAYcpsEoAAmiBtEoJZVZ23Svpx4I0E6HZ1dh3+6pJXa27m5WtPCLVRg7B7E1VmdTyDurgLch1redYrMjBrWZLoL9+8Ni/URv4c6WQm8YHN9PH/326Ov/dnYXYaq1weiyMUSjHOB9dlU4QQuEkFOUm7zK3u3uBwBuOr24KcsPYfD1j8LhcZT0/dW8dj5XTqLKibFv/q6kpvxT8vV2P8uts6JTeTLWOVe+Y+Vvnq+NiYiSRilj9G4L4a/bQW03GWO1NgDAfdofhxefD37zX36WlhRCv3gxvVkwxaq5erF8/eNiepk7YRutzGpWlVnz6sf9xtqecLqSui5lvqiX06p/FO578H3gRvZhKCn0LiU+2+GtdP/J3m7W723FLZ9FGSmVEErUqimZJgiIxcxS1s4qNuliM45TjVW1MTWUK1vlQjRSK71eIuguU+4NhAQB6iRzBHB7AANg7/C/6AIBPkG0XAROGG8ZZG6bk43W2iCMunRlrS2AxZvRpOMrrLU3XIJB6z7JB+kJ7skXurd7l60j2kJp//a9haHvB5z7ZJMwHNBocVMup5W7C0rqplJS6H0so7HG2j1YpHvYltMWHdv+otsBlSlLUYPUaxsc1M6YsQc0jLjnM0wRIng5LZezqszErgffOxh8fDAOj07j/lF48yaXjW4qVZeyLmVdKTeBr0vpjBE9n67pfmE7I1k/+uhnFL8YuybA9mhnjVVCN5VqKtU1cFwnEtPlYWyWCsZIt5pXTZUL2SgbMqfD78h9P6kltSvHaW95et/a51qFZPtubMi7JcjeR0vq59tiv5fpGOywiIpMzK6KmzfZclo1ldTayEZXpZRCK9BybeHnggP1oPXkYJw4Q0OHuxuMw6j3szz46HtT321HnW+LLwJkd4oK1P6HdW2KdgBHe1obO3+xWhlRqyKrV/MqnCLeIOxZFiIUA2U7ucc9GkrapjDV0orCFnO5mBZFVimhHX8Mt/je/Te1XRmQ9hRuUTu332usWdi2pNZ0RbTThd7qbr//SkD7Bi/Mo15AvZB5AaUMW2tFrapSNKVUQrcNKeeCLg2sR9wIAcVESl0XosxFXUmtLCDkWHIut7/nztHaj60F0rcHcLuHo7BbUDhCCMPbWhN/5d7Cvc/6o5M4HQab/fLNs8XTP9/8+MdJU6sqa4pl8+bp8tv/dUkZlo06f9TfMvUQMtr5ZXZbxnI1q518dFMpayyyoK3VTnm+taPcOaNt6KxGG6XAmiab16tZlS2qMhPR2qD0XQy+iA3G0fG9dHgSBU+4bCrRqLqUVS7LrAGAKpdOWQcAgogPT6KWr7dnTu7k+98fR2C7hY5zSWFuNbo2b13K1axa3pTFWeQI7c5tVGu7x/RG2my4DsVKLOeVOwU7piT3qRdS5lPKCcb4ti/j3pUZY40yTvP/VsJAnUPeGpyFEbLwtpOcO2VZsO8vQQZ3MUBb34RfZtG32rS7r97UqljVy1m1nFbFqhGNdnBBa6wBY24NrSxYDQbUdtpXV3I2Ka5frQbH4eAkinveRzP4fokKY3ta3wFeWwu3j/wGrGm/TWNMVYrFtLh5kzEPRQPuJxhjbH0MDN3hsqysrGy5VNlULK7L61eLxU1eV8KdFBBC1oDRO4TD9Tt2wRt7hcX7VxjoU1UYjqvsBcw5bZm16o4zX8uXzfCYIoy41/LLus6dolbZol7clNm8aippjd2MGdF7j7a2HpmccI+8j8TN30oK987ewpf/dHLvcf/ofKti+OzbqfPCqwp5LXSZi5ffz0StmkqKWgHAxefD7WZ9qyx3J7LFpFzNa1ErJw7xk2ZqrmXv9ESVbJWyHEClNwoo4z/J4EsH/vAkGoyjKOH5snYvki3rxbQCgGxZV4VQUmOCooQPxtHwJEpv8fU2TbmPGWkyHEQ8Hfi9YRD3PEe1W06rq5er4UkU9z3uM3cqJxQTCtqpcpF9GaXrV6urF8vpm9wZmrkxQJjwKPXCmLO7vCBve961lbe3XZO3EsYdEjXW/MTJ/R0SZD/ZkvpUrb/3AqrBFttdZk70XtSl1MowTrjnOYDf7a+7iwwEsJgghw6/ucyPb8qqkLtj0g/rSdEPd5WFn0gYW0iT3aCkXF3ZNklspzeqrNEWISAEW2vLvJm8XsY9jjCMTUqoDzFBCqzomuKsRxoKGUnqvJldl2+ezl48mVy/XpRFwzxMGcEIGW21ag26uxJGThlfSadPYNGe+OD+JOYXc8JYf1WUEe5T5hFHCHCVflPJxaS8fLYcHEeMkWTg76WK9uF0S+FN7pzgALWqA8RhlN9PRBpjxDwSxty9y/uoLsPfFCvleguEYM+nUer1RqFzYdrE+eO+qFVdyrqQTaUuny9nV3lVSIxRnHqjkzgdBGHMCcMb4aDuftRUKpvX8+tiMSkdZjFKvXTkj45jZ+tECG5JQnZ7SaJWRSYWN+XN6yxfNRtXpdW8GhyHnkcJe08GXxilHmVESZMv6+lV4b7H6VWRL2sljRPoXvP1+Iav136Kn9GTogwnfc8R15fTUlS6KsXsquDB3A8p4xhhbK1NBy3b8fYGWpfy1ZP5d/9y+eTfryevMlEryrC74HTo90Zh0vc31Po7ToHrOTNl2CHHblcA79jQ0buX/E9JkH2kvPkvNq7bqNoUq6bIRJWLplYE4zDhg6MoHQZx32OcoDXZfjurB2e6V84nRbEUdSkd33M5rcpcKGU+Gh9Mf/qSO017i7ZKUpu/Wbs35972flqNOamV0Foaoy2Y9U+YFupqLWCMKMMIQVk0V6+XzieDMOKHNAg5xYAJGNgMM4EgAASyhjqz+bK5ebN68eTm+Q+T69eLqmx4EDJGMMbWgFaACYDjDVkAA0rqplZNJUSjjDLt/BxZa129utOS6lLi7Ia7t74b6CPuONpmqA3aklDEPeL5lHuUukkGQaLR08v86Z9vuE8ow5/HY3pLD7kq5WJSTl5lk1er5aRsahXE3PNpmHhhxPe0HO4CE8EGso8xpoy8j+TyfxRU1AaxrYySWknNOpBHxsnpw17TqCoXq0W9uClXs0ot6pvL/PrF6vrV6ugsJgT7iLXaFqg7wLBVLpazanpVTK+KfFFbC71R8Oi3R59/Mz591E8GPuekqxHkbmQ2q69frZ7/ZUYINk8XWpti2cyui/l1OTyJgpCHjsGH3sLgQ8gLWDzwe6MgHQZ+SLWyq3l99XzpnJlX02o1r422fkjTYdAbBfHA9wLW9ogMALLuNGXRx+xNLgGkg+DsYS+bV8WqLleiKsVyVrXIKGOVslqZ+18M9jL0Jm4u8+/+9+W//l8vf/zjZHaVI4SSQRDG3tF5cnSWjE4dUxIDepukle1WGB8hdrKXTjZj/I+QIPsb8IzWpVOLGjCmLmQ+r7NZVSxrp33rxaw/jj77Zvz4d+OzR30/oK4lZ4xrl2F3AlneVD/++eYv//vy+XfTxU25mtnlTbmclvmyaSpJE6/T/vqARsLHVRi76t87LDewHUgtgDXaSTMq2Wit7P70Yq09gDC4lpRSijHshdSLGPeIURCEHGG0wS+5mZy1IIVeLsrJ69X168X168XN5XIxy7UxUc8DaJ9AtEu1c5KlopZ1JUQttdZuhG63hKcO2/s2D+OT6gFsndcwcj71YcLDmDsjnbqQN29y1yDmPg0i9uDLUbeXWpfqzbPFqyeLqxer2VWRLWoLECZeEPP+UTg4jpwc3rtxHS1WUtumkqt5Nbsu3lN1+W97+HJfmUMHuII9XzaD453FnPT980f95U15+WJ19Xw5nxRNpYplc/Mmf/N0OTqJ/Ygzj3C2L5uqpK4Kmc3dzLwscxHGPB0FD74c/va/nz/67VF/HHbx+JtYTMoXP8woI8WyLSzKTLROmfOkPwx3ULzvYPD1/WTgBzHPl02xaiavW/0rR9wDBEHMk4Ef9/09vh5yhNYPrTDQTq0ZpXx8nlS5WM2q6WUxvcqX00rUynUCtXLtOIsQGp5Etx33nv7p5tv/9ebbf37z+seFkjqIeDoIjs6Ti88HZw97g3G0Y0R41/Hf7ZWy0c7BMEz2i4x3t6T2VPG7+8xPSpB9pLz5L9B1cJ9PK+Mc450hkpIGY+RHbHgcPfjN6Jv/ce+zb8abm+PmK5v1MLsuvJBm82ryOptdF05uPV82ZdY0lYoSbx96+gvAavd8PWx3wnSb6e3Uwp0OfuNMxKRxFG5rWiNhTFrIhDFGCS0aZQwqsmZ2nVOORS2nl7kfcEIJxgjhFuEEBpQ2opHZqpxery5fzrNF2dRSNFIqXZWNFAohxDhlDIwFrdt3tMYlDNVUUjRKrzG4duuRtC8+aG8NMT5Ve2oHhh/QZOAPjqPBcbS8qRbTslg1stFaW8Yx96hW5vpFtmk4GGNErSevsyd/mDiWgGgUJgQTnPT9k/vp2aP+4Lg10dxnAKzZkZggygghWEkzvy6e/GEihU56/ubZ25T3CIM14DzGMcE8oGHM49QLU++WJge8jRey0Vzr6LKhj4EgE0QIBjAIo65eXlcmnXGMEEqHwfg8cUKBs6tioUtRq9lV8frpYnQaD46j3iiAOyS+tTPAyBa1G9g6DOvRWXL6sHd8kb7t8vrjUGuzuKle/bgIn8yzZe10pZazqlgJJc2dz5OFOxh86TCIe15TKdloNzd22C3ZaMbJ5gf2+Xpv6Udv7ht2ysFkl0yHtoQ7hBD3aToMzh7155Pi9dPF66eL6WVeSmEv1/hCBFKo+VXZbWB2Pb2f/unm8vlyep27Jk+Yevc+H3z2zdg52t5pIIHWmpWMt8ZK+bJ5+cOcMnz9cnUrPdtWD2LN9iAMez4JYi9KeJh4jrbSneoj3I7oXC96Oa1ePZkD3pcgM8agDQZxc52tGjNQRvyQxT0/Hfph4m00xzrn49ujiM2yb+/8uwi2t+b1Spp81bj6uCklQrDxqTw6T44v0m4q3WsPDo+jk4t0eBLHPY9y0lSqKWVViKaUXazghyZH+pNnj00bCqCDG9qcuVG3ZQNb/hlq6XBK6aZGVSmbNmFYMMgaAAMIIcoI4y0u2Fjjqg1jzGpRCSGnV1kQ8SDg3GOUE0LXVYLUolF1JYq8LvKqLJqmEoQgyohUrfUCoZh7jHkgBYADE5jWEVo00mUXrbQDeqH21LJ1uNpRjlrnRrtlJsG2WfWB9Lg1JnhnbXg+7Y/C0wf96ZvCCdjli7rWkizrmze5tTB5nQUh224ICLS2bcdjUlpjuc8cvejoXnrv8+H9L4bDk9A5f2yeqy2cBCMH52UeIRjLRl29XFWlevrnG77e/bfvhRFGyGgjpQFjmUd6o/DkQXr+qH/6sH90Fu8kDLM/cEVrBeyNqrPT9iAYdSFD78k3JmtoZqsl0/lz2wCcUpwMgpOL9PzxYDmrrbFNrfJlffViOTqNxxfp0Xmyt+caY5pKtd5wWSOFxgQFEUv6fjzw33o6hq2ST28U9EdB1PPoJZZC58vaOS81jbq7F2T3GXxJ3x8ch/1xWOWyyJq6lI534u5hGPP+OBwch8mev57duHPv3NNNtnY331qnBogx3mjKbA2K3QHfD9noND592Dt72L98vsoWNVwX1kKZNzdvcoRgOau+jyeM4y3CBiGEoC7l7LqYvM5UuyVZR5N+8JvhF/9wcu+zgauxjNvEyc4KQQgRgr2AEooQQstp+f2/XTmVsP2Bh2vZmxZlTgj2QtYbBccX6b3H/fPHg52EYcCCJRgxTj2fWmNFo6eXmVb6+tXKDzljd5ASNtwaawAwIABMcBDz4Ul0/4vho98eeQEjhGxTNbo7X2Dcnokpw076aE/n/xaHd9dfr1arWTW7LhbTsq4UJjiI6fA4Gh5HyWC/f3A7/Ij1RkF/HMapr2UppalzWa5EnQslNOWk28G7ywXq51UYdse09TZ4qNO3WbO1W7Bs40702ugtfbEVsmWE+9QLGPcp9yj3CGHIgq2KJl+VrhntuR/wKGEtnk8K1dSyrkRTSSmVUxh15TxhOEr8IPK8gDNOMd4evtxJwfUxRC2lUFqbdhbxzgrjLeN9+wnR1pSRZOCfPujlC9ep1NcY1YWUQs+uiuW02kPm7JHFXEcrGQQXnw8uPh+cP+6P7yV3TQu39qiO6qGE0cjmy6Yq5KsfFnfLMWGEMdLKNLWy2voRO75IP//9sdHWj3g69AG8d+hSOHRDa8gqtGg0JkgKrVrT1g8AgLZkHVeJais3BjXrE/Qdz0zIjs7i+18M82UjazV5nRWZuHqxilLfOQf44baR7UQ+Fjfl9DKfXuarWdXUknHqhyxMuB+y7iHOqYDsW/VhFMbcSUJhguqVnF0XVy9WJ/dXTlJ0+6X8FINvMI6WN5Uj69WldJ/FOTUNxh/A13NiAWuvKiWFko12kjz7N99u8Q5hwocn8fln/cW0BLDXL/1i1TivuqaSr58u3q3C5AVsdBw7Fabzx/37Xwy7BtrrlYw6UBQjhXZfqFa2LqWo1eRV9j4oIDdRP75IHv9uTAjqj3caZc6Kw5EHtbai0SoX+aKZXubvlCDbJ2MSit3zZbQdHEfj8wQ8stMiu9MRUhsltWy0qJU1W9PWt636vf+eL5vJ6+z108Xli9VyWhpt/ZA5en8Y8z2onpLaWuie3gjBSd8fjFtfyCoX08v88vny9EUvTLz+Ucg8Ah8Il/oAPwwLe/elU1Psb6NreQ/rZhjGmdpb0zLL1gkDMAbu0Sj1e6OwNwqNMVIqpbTRxumlEILqErekNooArDFGSi2FkkJpZYzWbm6MMA5jPgji43v9s/ujuBciBEqCUu180f0xxkqpRSOFaGcYmxQGdg/j9W4Asf1UwsXu+sKYj+8lRhl3zop73uWz5ey6mF7mtZINqM39dxUOBkQB+8B6R8HoJD46T+59Nnz41ejh16M7s8VmRbqt3wF4losKAaoLYYytlRSgzK3P5QQeNZgKpAUbznlVyCj1Ti7SKhe3MPK38PTGKmmaSjlX+uWsIgTFPa/KxfoM8V5htBWNbs3vZpXWlnFSZsJJSe49PEZbYwyh2Avo0Wlc/0blq2Z5U86dl0ApjHG7iRW1On/c64+jIGTG2HxRXz5bvvjL7PWP8+llXpYiZcQLaJjwIObcoxuzOSU1IQhhDGCtAYQRIYgQHCY87vlBzBFGjphNGYn7/vA06o+Co9OY+2RXm+EOD77BOBweR9cvVlqaxaRcNCUA9IswjHgY8+FxNBi3/nrbCRN6qxmiFNr5Ry0XpQDlz1iRNU2tnPflLdRp+4LpMLj/xRAA+kfh1fPl9cvs6sXy+mU2vcorEI4ptlmQBiwCIEAi4IPjaDCO0lEwOonufdZ/9NvxvceD3jDY1Ubcv8JyjSNX0lCKtbK1lBK06w7cBp0asBIMgGFAE/CbWkapd+9x38Gmu3ndWd4Wq1aJS1RS2ZZ6pMBoMG85yyELVoNFABgQAdy/ihBCZw/7VSG7fh5vs1ZtH7SsWc2qRVnykmaLqCqEFLq7XN/2ADS1mk/KV0/mT/988+zb6WJShLHnXFj6rSw/VlIbszW/sh1SBiGI+7Q3Cpx2wBuAxU0J1jq3JUIxIDQ8DndmYO9R7tOfZl90NDLa9hTqiqta2EdJtYQ+94+O+9P6dGprDBgDxi0xAISBcZb0g+N7vSoXAHYxzZtaugHO2jvTSqmV0giDBevcmYxpXZq1AtFIVRvu0f4oOn909PDLk4dfnvYGkTFQV1ZJa01LLDIaKWmaWta1kEJuZlwW2Y0n6Bbr1ZHXQLt54ufzvNFa5Gyjr849OhxHvu+GGeHwOPo2eNNUaj4rC2gMWAaEALIAm4kMBoQJDmM+vpd++U8nX//Xs8e/PXI2D91FsFsCW2utWXujClAACAuwAOYTydbZ22vIWK2NlFo0yvlKirbCMB9YYRiljBC6qZUbXUp3Ur7VBzPrLpzn08FxZAGt5tX189Xl8+X0Mq8KOXm5cvJtRmljjBewNmEsm8nr7OrFcn5dOMR6EPFk4G9mBhuzOXeawRhbaw2yDsSMiQ0TLx36vWEQxhwsZHV99WI5OInuPe6f3U/DmBPmY/IuBl8Q8uFxND5P3jxdUo6bRuVQA0DQcMpxbxSOz5PhcRSEvNuDfttEaGsL2ugGlAQlGq2EMcrsCpzstyaihN/7bJAOg4vPBtcvV8++nX77zzRfNtN5XoEEAL67IBEABosw8kM6vhd/9s3xF/94/PA3o94oHJ1Gm40JAcIY9jbczRWKWkljjCLWWg3G/uyTWXvMV+2Li1oJq3U7mfh0ilb2LXr8yihh3INmYe2toPdWfcdiZJd+sZpV0zf59cvVzVVeQcMVcxOmwXGUDgM/ZKTDgHSl2KYxizAKIjYYR+PzZHgc+iG7eZ1dv8q4z6K+nwz8dBi2iLWuqt1PVRkfUmHYrfrgrpPSXRXGntWpMY6KYXTLTbQWjAFkgBAcpf7RWdpUUiuttTYzt5SRw9dutJVdB2ODjcOt+I9FAixYyslgnDz88uSLb+6d3BuEiW80NAqMAUI2nC9QUotGNrVwFQbGZOuGYbtlk92RSuuKLn4iffO9BxwTFMQsiFky8NOB77abqpRam3jhuU4F48Rtc7eK8aPf/JeT3/73M3ck3EzMEAZCdt7HtQEdkuroLCYTjBAKIkYofluD6M6W1OmDXn8cBjHfM1i9vWltSB69YTA6jR3Py5169po87w5CsevJDI8jUSmj7fAkcvsy88jbpCYIxUHMhwidPujd+3wwmxRKmWxeu3IzX9aza0du0JsDqfOZiXv++Nxgglwrf3Qab9ja7r2IaafHbR+mbYghz6fpIDi+SM8fD4qVmE+KMOaEIC11UylXN/8Eg88j6SAYnyenD3qTV6vVvEYvAQDcbT990BufJ+kg+EkI3GZdeQFN+v7wJMoWqRTq6CzujYIg5pSRrmlup11sEUGUkf5R2D8KTy7S8XkS93xroMyFMTZd1D+1IMe//e9n3/yPe3sL0o1hEEJdsT53hY60qKR2QvROI+eDWlLHF2k6DPiuDiNlJIh40vf741A02g+ZkrrdWz68JXXvs/7wJNobq9wJNNo8aL1RcHQWm1eGcTo8iZK+7wVv8TPf5es5sR/Xae/1g1Cw43vJ8UXqvj5383cKS4TB7ghoOivy8Xly/qh//SoTtSpzgTAStaoKKRr1Eb6H9P3ThTEWQVsxwEZK7O5GzWYabruacWv3R6w1uFdzedULWG8YiUpKoZXSFmy2qJpKKKlcaYiRG0ybTcKwxjidQa2NsYb7tDeMjs/7pw9Gx/cGvWGIMEgBUq7FaA0yBrRq5x9NJUQjwVrK8Fq3ea1eC/aWn0x7vNVaW9CuBflpWXzdqpb79Phe0nbJCTq+n7q2RhAxyogFq6VRygIYQogfsv44OHvUf/y78cn9dGf4fFdrlVAcpd7pw97X/+0s6fv5snbHcMIwgrvBig7OdOfQu3+0DzC9zZtyBOazR30pTDrwskWDCfTH0cXng/F54u+2zrrQnb2E6kdsfJ589s2Y+/TBl0OjIel7pw8HZ4/6d7KdnWpNe2Zf/y7C6PgiKZaNVgZhFCb85CKNey0NDWHk3uXz3x+nA78qJGF4dBJdfDE8e9iLUm8HcobR7m7bns/cPvvwq5ExdjCOVrOSMnJ0HrtXoIzcQRTYXQnuOzq+SKtCIgSDk2gxKR0K6/7nw8e/Gx9fpFHa+uvtX8OtvzOPDE+iz343RgidPx5opXuj8P4Xw9OHvSj1yFsY18bYzZ7IfeqWlpIGU3TyoFfmgjIchNsFqZW1YF1S7x8F548Hn30zPn/c3xMr26ululf4+e+PGSOLm1JrQxkhBAE4NN3+8cwtkjuH3qfrr2kLQ0j48UXa1CpKveVNWZfKGON2c0LRDq33roRx59C7NwrILsLidrYmZP2g/dezKPWW05JQcnwvefzbo+FJ1E3229/dXfOkxQuMjLanD3rGmME4evCb0cUXg94o4Lcm3nsX4RZSmHjHF+kX/3AMGJ1cpEUm/JCdPewdncW30h76BAmjK0fsLM/sWhej2zndYoe2jWzrOjxrYhQopetCFqsGEw8hZLRFCCFtARChJIy8/lHslp07uM2uVVU0RhtMkeOybScM1mqlRSON1oCR77P+OD57MDx9MBoep2HsU9a2vNxla21FQ5SAYlUXq6rK6roWSqrN8XADK7QdKdyusqZ1KcqYVuPm0+WLOyX8EMGD4+hzjAbHUbaopdAYr2+CdW09C2A39Ma45/dHO3u3E3pDt47vlOJ04D/++mhwFOb/7UwKDYAIddpbb2mEO/zCW2C1O4LPTmZnN7yADk9iz6fj87jITmWjAJC75mTgx4m39+stcQkQxjs3OU68e58N0kHw2e/GdakALPNolPCk70c9f+8y0C1Fnt5R8Pnvx0dncb5qRK2MthYspSRK+fAkcsYyhKD+KPzs9+Oj87gupPNCCCLmLjVKdlpAGG3xQV18KmVoMA4pPT46S77+r2dNJRECP+K9gZ+OAldtvONBd6oHfsSPzmLu0+OL5HeLe00pAcALWdL3eqMwHfh+xJ2/3t0v0/m777PT+z0/ZA++GlW5MMZ6Po37fn8UJgOf3NIOaJult6yoB8fRF/+Ahid3L0hXfWOMCMPtgjwKu8RphBCluNtA617h2YO+H7DHvz1qKmWt3ZAhWslpe6fO4B2w2jj1op63R8e5/8VwMI7K36/HNsYxVRHCb9fc+ilY7U7CwHc8OISh9kEbh1//19OmVhgjZwzcH4W+z3bzzcaq0HbxGmcPe37IHn41qgtpAfyQpcNgcBQmA/92aX7rGwNMcBCydiHd7+XLWjTajdl6o6B/FHaVI94TskjfH9KDCUIYWqVJa402RhuEAKP9Fv9msmXBIgxOzLIu5WJaRle5BQhjj9K2+2YMgAXKSJT41gIiiLbMDA1gRS0BA6EYYWSM2TAx1vAnwjzaG0anD4YXnx0fnw+iJEAIK9V69lGKECIAIGpT5vXly+nk9TxbFkqojpJhVzi3M5VxTCWttcGAgFDCGLVgnW7dJ1QPv/Nr4j49vkjfgfr/ybiz7HWnV3f2gV/YgnhTYbRFxgf9+q1qx4+YO/6/p9jJPlwqYP4Fe/f9xBglA3+HXvBOsaO7/45QmPAw4ScP0o/89hFQhuO+H/f97iH941aUO7/fJtm9U+Ec3b0g76fH9z/RgvwZV/hBEcY8jPnxBcBfxXZ7r8J4nwdttzmJulB77yw5Oks+WuYWAZD3XkgfX2Ggu5wUMUaMY8IwRlCX0hjjyNuYIIYJwWgXiLo9uDsvPK3MalFdvVi4bMwYC0JMKCgBUlqtLEbYDzghmHLCOWGMMI6j2MtXlRDKGKOUcXgnQhDjxIGamUfDxB+Mk5N7/eN7g9Fxzw89AJDCGG0BsOcj7oFWMLtRr57ePPnzi6ffvV5MV8aYdQPX2rUfLNq1pXRFjJQSEQAEXuDFSWisaJoa47rLw/g5Dla7xCtr1jwjjNHHzPeUcaB7hBEcYn1X7+yV/czO4a/BENealjPhiv4PfgVjlVuQBP1KXIT/ymv7r39L6d1mbXjL6dnIKxGG/YASgnghEAYHMSYIU4s3EA27HV6smacIAFkh1WJaSKGEVISSpB/0BpRS0KpVMCYYM04ZJ8ynvs+D0ItTf3icLm6y1aIssrosGiEIWMu464cESS9Ih1EyiHqDqDcIoyQIQs4ZBQtKWqUMoUAp8X2oSsjmxY/fvvrD/3py+WJSlQ0g4B51ypbG7hhlbKYZxhqllVLSGEYoDiI/TiOlaZ7lziegtVNdtz9+5peHEGxMGT7utRxzHiEAODyaO3f1Uz1Xv6otDyEE2BLnPfFR6bbtiyKAQ7b4JQUK/5YJw9F8usqy1lijjNEGrCUUIUz8kPoR80MK1iKCnNqVMXYDoLJ2h5BhAbTUslR1KYwxceKPz9LBKKIMMEKEEGvAdS0d/Zgz5vssjL10EM1H0XySLWZFtqxEIwGAezRO/f4oHh6nw+M0HURh7HNO8bpBanRLWSWYOCpGvoLrN7PnT948/+HN/Gbl2l+UEa3BGOO2/q0A+0ahjGLPZ4zjOA3iJAgij3nU1I2xRmulNbLG2I7y7rt0lT9kngE/Tyz98CD9mnf5T58zft7d+0kZ80P85wp6Gx2hhJHCOKHADVtbNkrUygsIYdgRiwCgXAkhtdFaSaOkdkNRhN385NbLSi0blS3w9HJ19XIRpz4C3w+5H4BmxGjQGoy2mCJKgYSMUMw49QMexX46jMusllK7nngQ8bQX9kZxbxiHicc9QABagxaglQGEKMWcYkJASbua5S+fFc9/eHP9epavSikUoajVILFozdqxxhittdXGgMUYc4/6oRf3Qu7RtB8dnfQ9n0opiiIvy6IRtdIUtz4mTkfdav3JnIrXEAPbkkLXtlhoh3y+Yx2D0fsqbWwtXc2H2qfcNlD66dJq02qzptPG+8Br7nZINk6CH3YZawcUazqfeXsZmxJ563f78ZdqbHud7R1Ga4XN9+3MbBaAdZTE9aVgZxOEP6DDs7uWWjNa1yh+f6G9X3hBwhY0bz9qQb79TbvLZjOd/Ii36PTq37flu/OgtUAh9P7L4Bf54sAiWL8I+pjG9a0ZhgFjrNWtfy/GyGqrpK4rVWQNJsiPKOWkfxR6PitWTZ7VxbIutDDGaGUBLAZE2s+zGStbhCxCYBFIoRbT4vWPM8aI0cPjeyxKECUgGpASjDbYYEcdIJgEoUcoCSJ/MJZSaKONO7NQRrjHvIB7PsMIjAKwoDUoZbXSmBJCkOeD0bCYNc9/mPzw58sn375aLQpMsB9yyogFcAz9tX8OArBGO1AvMA6EkaQX9YdxbxAnaRhGPli7nK3ms/lintW1MBYT3Bpuu7Tagn4/IXQKwxrI8c4lvsEVvacXMSCMwSIEGD7enPy9LVo3rTbb1d3+wGvudkhsF9zy/k6xCGEC1qIda73tZdy6ORY++lLdzr5zh9FWcOmDFoDFCG+q3g9/nZ21tH0kN6rW6D/EgkQAgIj7dn6O6dBdWAkEdy2bn2tt9HEP2sY8+r1uzC/2xaEP+hQ/kTAwQczDPCDMwxiDVlY1GowpVghj0NpGkocJ5x6hDDMPEw4IWYssQnazp6950qar40gpdjtzWTTXrxcIu2MTOTpN/aDFSoFF1sBGLQJj4vvE9713fAAldk4DTuYOIdAKigzevFh8/6fL7//4/PLVTVMLP+DWZ+7ClNIbVRd3cCCUOFFJL2BxGvaG8ei41x8mvs+NNnlWzW6Ws2m2WoimREoQDMg4JDhFlGHC8CccNbcL6yMsTt7r0doC4v9aTaFP0MVGH/SsfNw1oA9LDe/xXuhvvgA6L4X+Iy7I/ReHT77aAf0txno/+0H7D/jF0R1NGwTcx+mID469SZ9hgppK17kSHCEMFkAqI6XWSocJY5wwhqKEYQw8IHXB61I2rSqtUsoYYwDZjRXzGjZuRSNX88Jao7Vpapkty+FxECch48zRhp18iEuB2CkZYcCdNpe10LawWodXCwgRAoQiQMRaEI0uZ8XkTfnku9dPv7+8fHWzWhRgLWUEYVBKtXhZbawxjohAKHElix94QcT9iEex7wfEWlWVqirFclbOp+VqYZrS1xXWtS8MFpEGMF6Io5QFyZq33BG1P8QhDnGIv58ZBtpKiVgEyAvp6DxoKj27rF99TxFCSloAEMKSSmttHVM6yokfUefpFve8MOHOkyRf1NmiLjPjzu+ALMYIWdd8bYcZ1ti6EkrrqmwW0+zmcnH+aHjxeHx0MggiQABSbmVxtQE3ZkDrkrPTm4P1nLnFjhMGANDUsJjmr15cv3gyefHk6vLlpMgqpZQbWmDbtsuMscZoRzgniHo+S3txbxgnvdAPOSbIWi2lKvKyLkVVyDLXdQG6DonhHHOLMViGCfIiSIa0N/aSPmccdWW8EBzAIYc4xCH+nhLGrQqDeVw2wexhOL4IFteN+3fKsVK2qWS+NIxDEOIoZUnfi3peEHHPp8wjlGFCkKsGCEVCSLPBThnb0f63xti6VEVWLmbZcp43jSSUUsYsRJQgrTvSie/ssW+QyMZYY5BWIKVeLfI3LyZP/vLqxZPLyeU8XxVaa6c6pbVes1ItQkApQRhRSryAJ2nYHyb9URwlAeNUKV3mVbaol7MiW9R1qbUiyAYURz5LMPNNgAiF4RkfX3jDM693xIOY7qeHQ7Y4xCEO8feVMO7oeSVDfvoofPz7FADml01VKFHrbC6KmawLgZENIpwOtRRWSlDS+hElDGEMYcwIQ0HE6kKWZVOXoqlEU0nV+hZY5MRhEBhjRCNNZbQ2jFMvYNba4SoJQ04ZIxQzRgkjlGDGwal7wlqycKNgaAw45VoppGhkU9WrZTm9Xrx5efPq+fXN1azISqWUqz+MsVpph4Vtif4+80M/jLwg8sPI8yPOPay1UKVoGl0sxWqmVjeQzUldIrCUMc5iPwyjpB9HPZoOyeiCXXwZHT8Ioh67k7J7iEMc4hB/l7DaLisdjy8Co6E/9uZXzeyqvnlVv/4hz6ZCNGC1BQTMA0y0VHVZSD/CXkD8kDg90aTni0YXWb2aV6sZUtI4GWoAiynCGLsxDKEEaWSUXs7yl09QldeDo6Q/jOJeGEReEHl+4AWR5xHMPXB2e1qBUqAMaAtKGiGUUkpKVeZ1tsin1/OrV9PJ1Xw+W+WrUgjhhMY2mh/OlxgBMEr9wOsNov4wSftxGPqYIaVlU5VlWTe1EjUSJa4LYpqEWMSQBYQ9RqM4HJ4Gp4+i88+i88/98X0v7rPe2PMCcptkf8gXhzjEIf5OEwbaoWgmQ848Mjj1VlMxeVklgwIhUMJiimVtKEeY4bq2RdEgZLiPopT2hl7/CDFGuU+ZRzBxYFPjcESiUVpraAUirdP1BIoBrKjFzeWiyKrFNBuO0/4ojntBGPth7MdpIJvQDz3KACwoBVIoUUshpBSqaaQQUjQyX5Xzm+Xly8mrZ9fTyaKuG4SQE0luBydgEUYME8YJpcQPeZKGvUHUG8RxGnLOlNZ1XWfLej7N86UQFbHKxxBxkqSpj/uEeSiIUe+Inz6KLn4TPvomefjbZHTud7y9nGjaIVEc4hCH+HUQ9xwrxxlehikNEhr1mB9RPyReQOIen7yuqpUSjRa1Xs2abNo0paQcekNmDcIYW2O9iFKKrLVeQHpHYRDzuhR1KauiqWshGimF1rp18EbIam1koUQjRS1EI4u8CmLPD7gf8jDywsj3fE6oBQtKg5JKCiWlUkIJqaRUUsgyr1eL/OZ6Pp0ssmWhjWaMYgwGgdM/xwR7HnUlSxj5QewFAeccUwZC1E1dN40q8iZf6HKBsymtMoQMDkIaj4PRSdIbB/0xS4Y47uPhqX/8MDj7LOxmi3dZZx3iEIc4xN9ZwkBoS7Pq/scwoRiDH5H+2Dt7HM0nTTYV80kzfVW9+gHyuSyk0spWHpSZQbgpc8E88ALi+YQHLEp5bxRqZepCLmfFYpqvFqappZLKgqUEE9oCqLQ2dSW0tUVeUU6cZz3lhFJKKQZswcmWGKO1ccRs06rJaim0aERV1lobygmx2KUupZVSGhB4hHsBH4yS4bjfG8R+yAFMXVVFXhRFVZdSNFZLYiVH2icGiLFgiecF/bF//6vo/lfp+RfB8JQzD/kRiXosTG9RWPBhOR3iEIf4NVUYXe2dDQbJj6gf0cGxd/wgLFbSNale/8AxRUYD80hTaUJRXYFohLWSUBNEJOnz3lHIPMp9SgjmHgXkkKzaWlNXoLVGHSMaa63WWhW6Krbefh1jo43Qk7VrwFXnf9ufwRh5futbYI1xklCEkSDy0n7UG8b9UZz2I8pIUwu1sqtFM73OskUtG0RxFHgRI0kSs9AH5qHhqffg6/jxP0af/WP84Ot4eLrTgNpTizwIxB7iEIf41SWMrQKJdbw5tCGBhykNU5oMWBBTP6JBTHsj7+pZObtqVlNRrES+1LKRmJgwNloCwgRRbK3lHgELjOOk7xOKgtirS1HXQlRSSeWYdMYYu9EwdCwJbYzRWhnTurQCIItQK85jkcWt2cvWERcjhAjCGGOCqUcZp55HvZAFIfdDL4w8hHRVFbaAupLZoskXNp/h1YzKGhghKGX+wO+dhMmA94/p0YV39ji892V478uwmy0AgBCklTXGYoQQgYN68yEOcYhfacLYaBvcuQn6ER2eIj8iw1Pv4jfx5EX14i/5039fvfzeNqUyhgJYJVBVIDyTUpl8UXkB4T7lHHOf+gHvjWxTi2JVr+ZltixUrhzvGtZKsYhgcBLrBhBCxiKXMBBqlc8QsmvKv10XKMZorSyAAsIoYySM/N4w7g2iKPYZJ8YaKUSW5U3VNLWWAmTFmoIj3efIYAIEc8b8qMfPvwgf/TY5/yI8uvDSEU8GLO4zuEuJE+EP1vY5xCEOcYi/q4TxNlHoTRPGC4kfkeGpr6Q5fRSmR5wQBAgYJ/lCaGmsMVLo1Uzlq4Yy4wU4SnnS95J+EMbM58QPKeMEYQBkAFlMkJTKOJLEmudNKLZAoPW2a/tOdzapADm9WWStk8NiUeyng2hwlPSHcRByAFsWTVap+TRfzvIyV1oyAglBMSP+YMgIwYyTZMhPHgaP/yH86r+nD75OBieeczG09g7TEnRgch/iEIc4JIwd0BRspglgLWAMuONjTxkeXwTWglbWj+nRvWp+Wa+mcjWtV7O6zKRSihDjR0gJZA0CwNZaL6SYWMZR0vcogyDidSGqqqlL0dRSKqWVAbAIAcKA197UG8OKtpwwxuhWtxcRRCj2fMo97gfMC70g5GHsBREDbJqmlkLnq2Y1b1YznU1RkRHVYIpQGJLeKDg6jftjLxmw5IiOzvnFl+H9r6LxRdBNn0Y703nACMG6/jkgaA9xiEMcEkanzrDrlou1Tin3dvSPvc/+IT0696eXzfXz8vLH8tX3xFqjpNYSgTXWYClwvtJaV1VReyH2AuwFjHnU8+OkZ5pK5atqNS+Wy0JlSmttjHHJyVlsIITWcwyLAIy1WmutjNbagqWYeIzHaZD24zQNg9ijjAAySqvVIqsr0VSqLkxdgCw5tj7HGAFGljHGB2P+6Jv4wdfJ8f0gPWJRjzptqLdZwWzVHw/Z4hCHOMQhYdwhNH9Xl8o5zWGCuIfHF8H4Ijh5KI/OvXTIuI8Qsswj5UoZYzG2xuhiKfJFTajyQoh6NB0G6SAMI8Y9xjjFBBCygC3GQCiWQhpjwFrXpwKAdcIAhFqFKowBE+IEyaPEb4l4SeD5zFqoq6bMxGJWrBZVlSslMDIeQaHP49DzbA9TBr0xu/919Pl/iT7/p/T0UZQMmetBbZxwuvOJg33YIQ5xiEPCgA8yg9uKCGprDNDOThr3GaEhIYhy5Id0eFqtprLKdZmJ5U2dLUSZKQDpR9DUYLS0ptESeQFB2BJq4x7nAY57fpk3ZVFXRVOXTVML6TSgYGPHZRDGhGIvYH7g+ZEXxV4QcT9k3CPGqrpWSkCZy+VMLW/sao7KDBuFGSVRzIMk6g2juM/TERmes9PH/qNvkvPPw97RTlVhtNXKIAe7OvgSH+IQhzgkDPgIO451k8oiwHb/3B3EbHwBXkj6R/7sqllOxOyynrysLNhsLoySWgEhWFakWIJRolhJL0TcBy8gQcijNB5YXNcyWxTzm2yBQEklGqmUckZRTlaEYcQ5S3phbxj3BnGU+JRhY1RdVfmqqGsla2gqXOdYlj5SAbXGIvAYi+JgeOqfPQ7PP4/PPw/GF17Up70jHg/4XT0ovNEoP2SLQxziEIeEAR/phgh73rnbLTVMmR/RdOiN77csv6hHAVktLGVE1JoyxDjIWlW5sCCZb8IU90YeISQIsedx7lOMnRKtAWsxQaKRFmxLtsDI81mUBOkg7A2jtB/6PrfWlIUsczG7KVeLpimQFhzZkJEwjvw0IZRDEOPemJ8+jO5/Fb1LDOpgYX+IQxziEJ8mYcCdHu4AYBFChKINyy9IaJRSPyJ+SPyIxD1+87ouV0rUpqnk8qYslk1VKMJNMqQIDKUSoAoChQkAMkHEAOIw8uqqqSuhlLZgCcXcY37AvIBxj1COlRJ5JpTUVSGLlS5XOJuSYmGNhCDA4dgbnST9cdA7osmIxAMyPPVP7hKDMtoabR1Ytp2zH/LFIQ5xiEN8woThGjaYwG3TZIQgSBgmKIho/9g7fRgvJs1qJhbXzc2rCmObL2W5Mqq2sqRVRhdIlVnDPPB8xAPKGEv7ITnCRtu6kk0jjDGMsyD2PJ8CmLpuqqLKlllVNLKxRhGtuJUx1hopgy3yPH9wHNz/KnrwdXr+eTg45dxHfkSjHr0tBuVS3dYG+JAtDnGIQxzi0yaMNYVtH2fqmlQItVJU/WPv+L7uSFExQsEY5Pm8KTWmSFZm0TTalpjKIELJ/7+9e+tp4wjDADzH3dmTvT6BwRyCG0iCVG5a9f//il5U6kWKojaEYrx4T7M7M71Yk8YE2kRqE2jf59riAlm87DfzvTtQ/UEoU6FCTwgeJlbXjbFWekKFHue0rnSR16tMX71bZYtCl4SRwJO+YIHyhBwRT9Hh1D94lczP4vlZ8rdlUAxlUAAA/3ZgfHzXtlvKpuzPv8KbVVRcRSJMRH+s3r4uf/+1zq7qfFkVGalrR7nThbOmoaSmlFpilZJMMC67n2e1rkxjiry5WejVtV0t6OqKV7kjhvo+SRLeGwSDbTWeeZN9f3oUzp5Hs+cPlkHdtqyjPRAA4MsGBl0vQz/YL6IiMZwGKhLDqdo7Ti7Oy/OfVq9/XL752TbatA0hpLWtqXKbsUbrZpnlKhBh7CklGWNt25RFVax0Xbi65FXOXRtLFlrumobZRnLOxjP/5Pt0/m2yfRhEqfirMii6XsTDVwEA4EsHBnm4L+OjKipiGrf9LEhGgnFjreWc5Uu/bYwxuq3KrKlvlppKo0KepH7SU0KwuqyXizxb1Lrk1IWMhoyGSSKTmJrWCclGu+rgNHz5Q+/ku3Q8C9bVhNbdXwaFe1AAAF8tMD6niopLOtkLjLG6bCilcaqu3zarhc4W5c11WxVNayjhREfOta3RWghal012ZbMrWheUU+IHtJd6g3GUDDwV8bDHhrv+4Wl8+CreKINiFGVQAACPNzA+tYpq4u+/7PmBHO5Ul+f1xXl58Qu1trWWkFoSYpkjpnZl5ihzrea2iTihnFBGhBQy7svto2A2jycHarTjp1tef+zdObFAGRQAwKMOjIeqqO5cT/J8Pt4Ng0j2J346LuMBVxGVilxf+FVuTGsJNcbW1ao2xlAiOVO9vk96TPokHojtg+DwNHx2Gu+dxFv74YfHFdY4ylAGBQDwJAKD3Dekss7eniswRhmnYSJ8xbsVv+4mVbrlX7/Vq0VbZG1+U19f0jwzunJSimCgBpOkN/R7Y5Zuy+HUm86j3Xm0dRCG8UZatI1lrCuDwmoFAMCTCoz1kIqtJ0Lug+0HLmnUk0KyqC9HO8H0SC/f6eWlXvxWX5znjpgyN9ZwP5DpRO2/iPZP4p15MJr5KuJRKpNUqkjcmUFxx7qdbZRBAQA8scC4M6Sim0MqxmkQiyAW6cSNdlW+bJaX+vJNFfYZ5Y5LXmSNCsXOUXR0Fn1z1tt/EQ93Nnfx2EYwvF/eBgCAJxgY5KMhVXeNavOwIUxEkPAgEUHMVciCRIxnYV0Yz2ejXTU7jvaOow/TYp0ZbfeeDJRBAQD80//tu/evq/6aodHdpbo3TlxVmDJrV8u2XLVt4zinQcKTgUyGUnr87uctccR1EyikBQDAfy4wAACAYCT1ebMp4sh6y4+QjSqqe3W7eOtCckoow1MFAMD/5AnDkdsGD/KJt2CtcetTdMygAAAwkgIAAIKR1CcOqZx167Px7mIuo4ziqQIAAIGxUSZCu1d5u9tR1fsVDqQFAABGUgAA8Lgw/AoAAACBAQAACAwAAEBgAADAI/QH1ipTW9hlNvgAAAAASUVORK5CYII=">
+      <div class="ttl"><b>Atlas Eléctrico de México</b><span>De los recursos energéticos al consumidor</span></div>
+    </div>
+    <span class="badge b-sc" style="font-size:12px">TE1020 · Análisis de Circuitos Eléctricos</span>
+  </div>
+  <div class="mods" aria-label="Módulos del Atlas">
+    <button class="mod" aria-current="page">0 · Recursos energéticos</button>
+    <a class="mod" href="modulo-1-generacion.html" style="text-decoration:none">1 · Generación</a>
+    <a class="mod" href="modulo-2-transmision.html" style="text-decoration:none">2 · Transmisión</a>
+    <a class="mod" href="modulo-3-distribucion.html" style="text-decoration:none">3 · Distribución</a>
+    <a class="mod" href="modulo-4-sabias-que.html" style="text-decoration:none">4 · ¿Sabías que?</a>
+  </div>
+</div></header>
+
+<nav class="tabs" aria-label="Secciones del módulo 0"><div role="tablist" id="tablist"></div></nav>
+
+<main class="wrap" id="main"></main>
+
+<div id="tooltip" role="tooltip" hidden></div>
+<div id="live" class="sr" aria-live="polite" style="position:absolute;left:-9999px"></div>
+
+<script>
+"use strict";
+/* ========== utilidades ========== */
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt=(n,d=0)=>Number(n).toLocaleString('es-MX',{minimumFractionDigits:d,maximumFractionDigits:d});
+const pct=(a,b,d=1)=>fmt(100*a/b,d)+' %';
+const say=t=>{$('#live').textContent=t};
+const D24='Informe Anual 2024 CFE';
+const TYPES={of:['Oficial','b-of'],ca:['Cálculo','b-ca'],si:['Simulación','b-si'],es:['Estimación','b-es'],co:['Concepto','b-co']};
+const bd=(t,extra)=>`<span class="badge ${TYPES[t][1]}" data-t="${esc(extra||({of:'Dato publicado en un documento oficial cargado.',ca:'Operación aritmética hecha sobre datos oficiales.',si:'Resultado de un modelo con supuestos editables.',es:'Valor inferido con supuestos; no es un dato publicado.',co:'Explicación técnica de apoyo; no es un dato.'})[t])}" tabindex="0">${TYPES[t][0]}</span>`;
+const sc=(s,t)=>`<span class="badge b-sc" data-t="${esc(t)}" tabindex="0">${s}</span>`;
+const SCOPE={cfe:sc('CFE','Datos exclusivos de la Comisión Federal de Electricidad, sin Productores Independientes de Energía (PIE).'),
+  pie:sc('CFE + PIE','CFE más los Productores Independientes de Energía. No es el total nacional.'),
+  sen:sc('Nacional (SEN)','Sistema Eléctrico Nacional según PRODESEN: todas las centrales interconectadas.')};
+
+/* ========== glosario / tooltips ========== */
+const G={
+ primario:{t:'Concepto técnico',x:'Recurso energético primario: energía tal como existe en la naturaleza, antes de transformarla (por ejemplo la radiación solar, el viento, el agua en un embalse, el uranio o el petróleo y el gas en yacimientos).'},
+ combustible:{t:'Concepto técnico',x:'Fuente o combustible: la forma de energía que entra a la central. Puede ser el recurso primario sin cambios (viento, sol) o un derivado ya procesado (combustóleo y diésel salen del petróleo).'},
+ conversion:{t:'Concepto técnico',x:'Proceso de conversión: el fenómeno físico que transforma la energía de la fuente en otra forma, por ejemplo combustión (química a térmica), fisión (nuclear a térmica) o efecto fotovoltaico (luz a electricidad).'},
+ tecnologia:{t:'Concepto técnico',x:'Tecnología de generación: el tipo de central o equipo que realiza la conversión, por ejemplo ciclo combinado, aerogenerador o central hidroeléctrica.'},
+ electricidad:{t:'Concepto técnico',x:'Electricidad producida: salida del generador (o del inversor en fotovoltaica). Se mide en energía (GWh) y la capacidad de la central en potencia (MW).'},
+ fosil:{t:'Definición legal',x:'Energías Fósiles: las que provienen de la combustión de materiales en estado sólido, líquido o gaseoso que contienen carbono y que se formaron por procesos geológicos o se obtuvieron a partir de estos.',s:'Ley de Planeación y Transición Energética, decreto DOF 18-mar-2025 (PDF completo, p. 192)'},
+ renovable:{t:'Definición legal',x:'Energías Renovables: aquellas cuya fuente se regenera naturalmente a escala del tiempo humano. La ley enumera viento, radiación solar, movimiento del agua en cauces naturales o embalses ya existentes, energía oceánica, calor interno de la tierra y los energéticos que determine la Ley de Biocombustibles. No incluye la nuclear.',s:'Ley de Planeación y Transición Energética, DOF 18-mar-2025 (PDF completo, p. 192)'},
+ limpia:{t:'Definición legal',x:'Energías Limpias: fuentes y procesos cuyas emisiones o residuos no rebasan los umbrales de la regulación. La lista incluye viento, radiación solar, geotermia, hidroeléctricas, biocombustibles y metano de residuos, y también la energía nucleoeléctrica.',s:'Ley del Sector Eléctrico, DOF 18-mar-2025 (extracto p. 3; decreto completo p. 85)'},
+ nuclear:{t:'Clasificación',x:'La energía nuclear es limpia según la Ley del Sector Eléctrico, pero no es renovable: el uranio no se regenera a escala humana y no figura en la lista de fuentes renovables.'},
+ fision:{t:'Concepto técnico',x:'Fisión nuclear: un núcleo de uranio-235 absorbe un neutrón y se divide, liberando calor y más neutrones. El calor produce el vapor que mueve la turbina.'},
+ gwh:{t:'Unidad',x:'GWh (gigawatt-hora): energía. 1 GWh = 1 000 MWh = 10⁶ kWh. Un equipo de 1 MW operando una hora entrega 1 MWh.'},
+ mw:{t:'Unidad',x:'MW (megawatt): potencia, es decir, la rapidez con que una central puede entregar energía. La capacidad efectiva es la potencia que la central puede sostener realmente.'},
+ tj:{t:'Unidad',x:'TJ (terajoule): energía contenida en el combustible que entra a la central. 1 GWh de electricidad equivale a 3.6 TJ.'},
+ bruta:{t:'Concepto técnico',x:'Generación bruta: la que sale del generador. La neta es la bruta menos el consumo propio de la central (servicios auxiliares).'},
+ pie:{t:'Término',x:'PIE: Productor Independiente de Energía. Genera con sus propias centrales y vende a CFE; el Informe 2024 lo presenta por separado de la generación de CFE.'},
+ sen:{t:'Término',x:'SEN: Sistema Eléctrico Nacional. Conjunto de centrales, líneas y redes interconectadas que abastecen al país.'},
+ cc:{t:'Tecnología',x:'Ciclo combinado: una turbina de gas genera electricidad y sus gases de escape calientes producen vapor para una segunda turbina. Combustible típico: gas natural.'},
+ carbo:{t:'Tecnología',x:'Carboeléctrica: quema carbón en una caldera para producir vapor. El informe indica que las unidades duales también usan combustóleo y diésel en el arranque.',s:D24+', PDF p. 39 (CFE Generación II)'},
+ vc:{t:'Tecnología',x:'Vapor convencional: caldera que produce vapor para una turbina. El informe indica combustóleo como insumo principal y gas natural como otro insumo.',s:D24+', PDF p. 39 (CFE Generación II)'},
+ tg:{t:'Tecnología',x:'Turbogás: turbina de gas que mueve el generador sin ciclo de vapor. Funciona con gas natural o con destilados como diésel, según el diseño.'},
+ ci:{t:'Tecnología',x:'Combustión interna: motores (típicamente diésel) acoplados a un generador; se usan en sistemas pequeños o aislados.'},
+ fv:{t:'Tecnología',x:'Solar fotovoltaica: celdas semiconductoras convierten la luz en corriente continua; un inversor la pasa a corriente alterna.'},
+ eol:{t:'Tecnología',x:'Eólica: el viento mueve las aspas de un aerogenerador acoplado a un generador.'},
+ hid:{t:'Tecnología',x:'Hidroeléctrica: agua en un embalse cae por un conducto y mueve una turbina hidráulica acoplada a un generador.'},
+ geo:{t:'Tecnología',x:'Geotérmica: vapor del subsuelo mueve una turbina de vapor. No hay combustión.'},
+ bio:{t:'Tecnología',x:'Bioenergía: aprovecha biomasa o biogás renovables (por ejemplo bagazo o gas de residuos) en motores, calderas o turbinas.'},
+ cogen:{t:'Tecnología',x:'Cogeneración eficiente: produce electricidad y calor útil con el mismo combustible. La tecnología no define el combustible: puede ser gas natural u otro.'},
+ turbvap:{t:'Equipo',x:'Turbina de vapor: convierte la energía del vapor en movimiento. Se usa con carbón, combustóleo, gas natural, uranio, calor geotérmico o biomasa; por eso no basta para clasificar una central.'},
+ factor:{t:'Concepto técnico',x:'Índice de uso de la capacidad = generación ÷ (capacidad × horas del año). Cercano al factor de planta, pero aquí se calcula con la generación bruta y la capacidad efectiva promedio, así que es aproximado.'},
+ directas:{t:'Concepto técnico',x:'Emisiones directas: las que salen de la central al operar (por combustión u otros procesos). No incluyen fabricación, extracción, transporte ni desmantelamiento.'},
+ ciclovida:{t:'Concepto técnico',x:'Emisiones de ciclo de vida: suman todo el recorrido (extracción o fabricación, transporte, construcción, operación y desmantelamiento). Su valor requiere estudios específicos que no están en los documentos cargados.'},
+ intermitencia:{t:'Concepto técnico',x:'Intermitencia: la producción depende de un recurso que varía (sol, viento, lluvia), por lo que no siempre puede entregar su capacidad cuando se necesita.'},
+ co2:{t:'Dato oficial',x:'Emisiones de CO₂ por MWh de la generación de CFE: 0.6 tCO₂/MWh en 2022, 2023 y 2024. Es un promedio de todo el parque de CFE, no de un recurso individual.',s:D24+', PDF p. 31'},
+ faradaymod:{t:'Concepto técnico',x:'Inducción electromagnética (ley de Faraday): al girar el rotor dentro de bobinas se induce un voltaje alterno. Es el principio común de los generadores en las turbinas de gas, vapor, viento y agua.'}
+};
+const tip=(k,l)=>`<span class="tip" tabindex="0" data-g="${k}">${l}</span>`;
+
+/* tooltip: hover, foco y toque */
+const tt=$('#tooltip');let ttFor=null;
+function showTip(el){
+  let html='';
+  if(el.dataset.g){const g=G[el.dataset.g];if(!g)return;html=`<div class="tt-t">${g.t}</div>${esc(g.x)}${g.s?`<div class="tt-s">Fuente: ${esc(g.s)}</div>`:''}`;}
+  else if(el.dataset.t){html=esc(el.dataset.t);} else return;
+  tt.innerHTML=html;tt.hidden=false;ttFor=el;el.setAttribute('aria-describedby','tooltip');
+  const r=el.getBoundingClientRect(),w=tt.offsetWidth,h=tt.offsetHeight;
+  let x=Math.min(Math.max(12,r.left+r.width/2-w/2),innerWidth-w-12),y=r.bottom+8;
+  if(y+h>innerHeight-8)y=Math.max(8,r.top-h-8);
+  tt.style.left=x+'px';tt.style.top=y+'px';
+}
+function hideTip(){if(ttFor)ttFor.removeAttribute('aria-describedby');tt.hidden=true;ttFor=null}
+const tipEl=e=>e.target.closest&&e.target.closest('[data-g],[data-t]');
+document.addEventListener('mouseover',e=>{const el=tipEl(e);if(el&&el!==ttFor)showTip(el)});
+document.addEventListener('mouseout',e=>{const el=tipEl(e);if(el&&!el.contains(e.relatedTarget))hideTip()});
+document.addEventListener('focusin',e=>{const el=tipEl(e);if(el)showTip(el)});
+document.addEventListener('focusout',e=>{if(tipEl(e))hideTip()});
+document.addEventListener('click',e=>{const el=tipEl(e);if(el&&!el.matches('button,a')){ttFor===el&&!tt.hidden?hideTip():showTip(el)}else if(!el)hideTip()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')hideTip()});
+addEventListener('scroll',hideTip,{passive:true});
+
+/* ========== datos oficiales ========== */
+// Informe Anual 2024, PDF p.29 (pág. 26): generación bruta anual por tecnología, CFE (GWh). Capacidad efectiva: PDF p.24 (pág. 21).
+const GEN=[
+ {k:'Ciclo combinado',cat:'F',g:'cc',a:58234,b:61490,v:5.6,c1:10912.4,c2:10912.4},
+ {k:'Vapor convencional',cat:'F',g:'vc',a:29336,b:28135,v:-4.1,c1:9747.6,c2:9697.6},
+ {k:'Carboeléctrica',cat:'F',g:'carbo',a:15307,b:14012,v:-8.5,c1:5463.5,c2:5463.5},
+ {k:'Turbogás',cat:'F',g:'tg',a:8168,b:8379,v:2.6,c1:2942.0,c2:2940.9},
+ {k:'Diésel',cat:'F',g:'ci',a:2657,b:2851,v:7.3,c1:null,c2:null},
+ {k:'Turbojet',cat:'F',a:124,b:209,v:68.5,c1:null,c2:null},
+ {k:'Nucleoeléctrica',cat:'N',g:'nuclear',a:12386,b:12307,v:-0.6,c1:1608.0,c2:1608.0},
+ {k:'Hidroeléctrica',cat:'R',g:'hid',a:19568,b:22354,v:14.2,c1:12143.6,c2:12155.6},
+ {k:'Geotermoeléctrica',cat:'R',g:'geo',a:4321,b:3692,v:-14.6,c1:808.1,c2:808.1},
+ {k:'Solar fotovoltaica',cat:'R',g:'fv',a:274,b:555,v:102.6,c1:126.0,c2:433.0},
+ {k:'Eoloeléctrica',cat:'R',g:'eol',a:86,b:75,v:-12.8,c1:85.7,c2:85.7}
+];
+const CAPX=[{k:'Combustión interna',cat:'F',c1:1009.3,c2:1011.9}];
+const CATN={F:'Fósil',N:'Nuclear',R:'Renovable'};
+const sum=(arr,f)=>arr.reduce((s,x)=>s+f(x),0);
+const catGen=(c,y)=>sum(GEN.filter(x=>x.cat===c),x=>x[y]);
+const TOT={a:sum(GEN,x=>x.a),b:sum(GEN,x=>x.b)};
+const capCat=c=>sum(GEN.filter(x=>x.cat===c&&x.c2),x=>x.c2)+sum(CAPX.filter(x=>x.cat===c),x=>x.c2);
+const CAPT=capCat('F')+capCat('N')+capCat('R');
+// PDF p.29: consumo de combustibles CFE (TJ) 2023→2024 (consolidado)
+const FUEL=[{k:'Gas natural',a:770020,b:782478,cat:'F'},{k:'Combustóleo',a:162313,b:132950,cat:'F'},{k:'Carbón',a:107582,b:128665,cat:'F'},{k:'Diésel',a:40068,b:39956,cat:'F'},{k:'Uranio',a:130118,b:130343,cat:'N'},{k:'Vapor geotérmico',a:97659,b:85253,cat:'R'}];
+const FOSSTJ=sum(FUEL.filter(f=>f.cat==='F'),f=>f.b);
+const HRS24=8784;
+const useIdx=x=>x.c2?x.b/(((x.c1+x.c2)/2)*HRS24/1000):null;
+
+/* ========== cadena conceptual ========== */
+const CHAINS={
+ gas:{n:'Gas natural',s:['Gas natural (hidrocarburo en yacimiento)','Gas natural (combustible)','Combustión en turbina de gas','Ciclo combinado o turbogás','Electricidad'],dd:['Se extrae de yacimientos; es un recurso fósil.','Entra a la central ya tratado y transportado por ducto.','La combustión libera calor y gases a alta presión.','La turbina mueve un generador; en ciclo combinado el calor residual produce vapor para una segunda turbina.','Corriente alterna trifásica entregada a la red.']},
+ carbon:{n:'Carbón mineral',s:['Carbón mineral (yacimiento)','Carbón (combustible)','Combustión en caldera','Carboeléctrica','Electricidad'],dd:['Recurso fósil sólido formado en procesos geológicos.','Se tritura y entra a la caldera. Las unidades duales también usan combustóleo.','El calor convierte agua en vapor a alta presión.','Turbina de vapor y generador.','Corriente alterna a la red.']},
+ petro:{n:'Petróleo: combustóleo y diésel',s:['Petróleo (yacimiento)','Combustóleo o diésel (derivados)','Combustión en caldera o motor','Vapor convencional, turbogás o combustión interna','Electricidad'],dd:['El petróleo es el recurso primario fósil.','Son derivados ya refinados: aquí el combustible no es el recurso primario.','Caldera (vapor) o cámara de combustión de un motor o turbina.','La misma tecnología puede usar combustibles distintos según el diseño.','Corriente alterna a la red.']},
+ uranio:{n:'Uranio',s:['Uranio (mineral)','Combustible nuclear','Fisión nuclear','Central nucleoeléctrica','Electricidad'],dd:['Recurso no renovable.','El mineral se procesa y se arma en barras de combustible.','La fisión libera calor sin combustión.','El calor produce vapor que mueve una turbina de vapor y un generador.','Corriente alterna a la red.']},
+ sol:{n:'Radiación solar',s:['Radiación solar','No hay combustible','Efecto fotovoltaico','Solar fotovoltaica','Electricidad'],dd:['Recurso renovable.','La luz llega directamente; no se transporta ni se quema nada.','Los fotones liberan electrones en el semiconductor y generan corriente continua.','Paneles, inversor y transformador.','El inversor entrega corriente alterna.']},
+ viento:{n:'Viento',s:['Viento','No hay combustible','Energía cinética a mecánica','Aerogenerador (eólica)','Electricidad'],dd:['Recurso renovable.','El aire en movimiento ya trae energía cinética.','Las aspas giran el rotor. La potencia disponible es P = ½·ρ·A·v³.','El rotor acciona un generador.','Corriente alterna a la red.']},
+ agua:{n:'Agua',s:['Agua en embalse o río','No hay combustible','Energía potencial a cinética','Central hidroeléctrica','Electricidad'],dd:['Recurso renovable (la ley considera cauces naturales o embalses ya existentes).','La altura del agua almacena energía potencial.','Al caer por el conducto se vuelve energía cinética. P = ρ·g·Q·H·η.','La turbina hidráulica mueve el generador.','Corriente alterna a la red.']},
+ geo:{n:'Calor geotérmico',s:['Calor del subsuelo','Vapor geotérmico','Vapor a turbina','Geotermoeléctrica','Electricidad'],dd:['Recurso renovable según la ley.','El vapor del yacimiento entra directo a la turbina.','No hay combustión; la turbina convierte la energía del vapor en movimiento.','Turbina de vapor y generador.','Corriente alterna a la red.']},
+ bio:{n:'Biomasa y biogás',s:['Biomasa o residuos orgánicos','Biomasa o biogás renovable','Combustión o digestión','Bioenergía','Electricidad'],dd:['Es renovable cuando el energético cumple lo que defina la Ley de Biocombustibles.','Es combustible, pero de origen biológico.','Se quema en caldera o motor; el biogás se forma por descomposición.','Caldera, motor o turbina con generador.','Corriente alterna a la red.']}
+};
+const CK=['primario','combustible','conversion','tecnologia','electricidad'];
+const CL=['Recurso primario','Fuente o combustible','Proceso de conversión','Tecnología','Electricidad producida'];
+
+/* ========== tecnologías y combustibles ========== */
+const TECH={
+ cc:{n:'Ciclo combinado',fam:'F',f:[['Gas natural','usual']],x:'Diseñado para gas natural. El Informe 2022 (PDF p. 88) menciona una central que operó con combustible alterno, así que el combustible depende del diseño de cada central.',t:'Concepto + Informe 2022'},
+ vc:{n:'Vapor convencional',fam:'F',f:[['Combustóleo','usual'],['Gas natural','usual']],x:'El informe indica combustóleo como insumo principal y gas natural como otro insumo en esta tecnología.',t:'Informe 2024, PDF p. 39 (CFE Generación II)'},
+ carbo:{n:'Carboeléctrica',fam:'F',f:[['Carbón','usual'],['Combustóleo','usual'],['Diésel','posible']],x:'Las unidades duales usan carbón o combustóleo. El diésel sirve en el arranque.',t:'Informe 2024, PDF p. 39 (CFE Generación II)'},
+ tg:{n:'Turbogás',fam:'F',f:[['Gas natural','usual'],['Diésel','posible']],x:'Puede operar con gas natural o con diésel según el diseño de la unidad.',t:'Concepto técnico'},
+ ci:{n:'Combustión interna',fam:'F',f:[['Diésel','usual'],['Combustóleo','posible']],x:'Son motores que, según el diseño, usan diésel u otro derivado del petróleo.',t:'Concepto técnico'},
+ nuc:{n:'Nucleoeléctrica',fam:'N',f:[['Uranio','usual']],x:'Un solo combustible: uranio. La central de México es Laguna Verde (Informe 2024, PDF p. 66).',t:'Informe 2024'},
+ fv:{n:'Solar fotovoltaica',fam:'R',f:[['Radiación solar','usual']],x:'No usa combustible: aprovecha la radiación solar directamente.',t:'Concepto técnico'},
+ eol:{n:'Eólica',fam:'R',f:[['Viento','usual']],x:'No usa combustible: aprovecha el viento directamente.',t:'Concepto técnico'},
+ hid:{n:'Hidroeléctrica',fam:'R',f:[['Energía hidráulica','usual']],x:'Usa el agua de un cauce o embalse.',t:'Concepto técnico'},
+ geo:{n:'Geotérmica',fam:'R',f:[['Calor geotérmico (vapor)','usual']],x:'Usa vapor geotérmico como insumo (Informe 2024, PDF p. 39).',t:'Informe 2024'},
+ bio:{n:'Bioenergía',fam:'R',f:[['Biomasa','usual'],['Biogás','usual']],x:'Es renovable cuando el energético cumple lo que defina la Ley de Biocombustibles. El Informe 2024 (PDF p. 75) reporta 23 centrales de bioenergía con 300 MW en Contratos de Interconexión Legados.',t:'Informe 2024'}
+};
+const FAMS=[
+ {id:'F',n:'Fósiles',rec:[['Gas natural',''],['Carbón mineral',''],['Combustóleo',''],['Diésel y derivados','']],tech:['cc','carbo','vc','tg','ci'],g:'fosil'},
+ {id:'N',n:'Nucleares',rec:[['Uranio','']],tech:['nuc'],g:'nuclear'},
+ {id:'R',n:'Renovables',rec:[['Radiación solar',''],['Viento',''],['Energía hidráulica',''],['Calor geotérmico',''],['Biomasa y biogás renovables','']],tech:['fv','eol','hid','geo','bio'],g:'renovable'}
+];
+
+/* ========== render sección 1 ========== */
+function sec1(){
+  const el=$('#p-clasificacion');
+  el.innerHTML=`
+  <div><h2>De la fuente de energía a la electricidad</h2>
+  <p class="lead">Cinco ideas distintas que suelen confundirse. Elige un ejemplo y toca cada nivel.</p></div>
+  <div class="card">
+    <div class="pills" id="chainPills" role="group" aria-label="Ejemplo de cadena"></div>
+    <div class="chain" id="chain"></div>
+    <div class="callout" id="chainTxt"></div>
+    <div>${bd('co')}</div>
+  </div>
+  <div><h2>Tres familias de recursos</h2>
+  <p class="lead">Toca una tecnología para ver con qué combustibles puede operar. Una misma tecnología puede usar combustibles distintos según el diseño de la central.</p></div>
+  <div class="grid g3" id="fams"></div>
+  <div class="card" id="techDetail" aria-live="polite"><b>Selecciona una tecnología</b><span class="note">Aquí verás sus combustibles posibles.</span></div>
+  <div><h2>Renovable no es lo mismo que limpia</h2>
+  <p class="lead">Son dos listas distintas en la ley. Selecciona un recurso para ver en qué lista aparece.</p></div>
+  <div class="grid g2">
+    <div class="card">
+      <div class="sets" role="img" aria-label="Diagrama: las renovables están dentro de las limpias; la nuclear es limpia pero no renovable; los fósiles quedan fuera de ambas.">
+        <div class="set"><h4>${tip('limpia','Energías limpias')} (Ley del Sector Eléctrico)</h4>
+          <div class="set inner"><h4>${tip('renovable','Energías renovables')}</h4><div>Viento · Radiación solar · Hidráulica · Geotermia · Biocombustibles</div></div>
+          <div class="set"><h4>Limpia y no renovable</h4><div>${tip('nuclear','Energía nucleoeléctrica')}</div></div></div>
+        <div class="set" style="border-color:var(--c-F)"><h4>${tip('fosil','Energías fósiles')}</h4><div>Gas natural · Carbón · Combustóleo · Diésel</div><span class="note">No son renovables ni limpias.</span></div>
+      </div>
+      <div>${bd('of','Clasificación tomada de las listas de la Ley del Sector Eléctrico y de la Ley de Planeación y Transición Energética (DOF 18-mar-2025).')}</div>
+    </div>
+    <div class="card"><div class="pills" id="rlPills" role="group" aria-label="Recurso a clasificar"></div><div id="rlOut" class="callout" aria-live="polite">Selecciona un recurso.</div></div>
+  </div>`;
+  const cp=$('#chainPills');
+  Object.entries(CHAINS).forEach(([k,c],i)=>{const b=document.createElement('button');b.className='pill';b.textContent=c.n;b.setAttribute('aria-pressed',i===0);b.onclick=()=>drawChain(k);b.dataset.k=k;cp.append(b)});
+  drawChain('gas');
+  const fm=$('#fams');
+  FAMS.forEach(f=>{const d=document.createElement('div');d.className='card fam '+f.id;
+    d.innerHTML=`<h3>${tip(f.g,f.n)}</h3><div><div class="note" style="margin-bottom:4px">Recursos y combustibles</div>${f.rec.map(r=>`<span class="chip">${r[0]}</span>`).join('')}</div>
+    <div><div class="note" style="margin-bottom:4px">Tecnologías (toca una)</div>${f.tech.map(t=>`<button class="chip" data-t2="${t}" aria-pressed="false">${TECH[t].n}</button>`).join('')}</div>`;
+    fm.append(d)});
+  $$('[data-t2]').forEach(b=>b.onclick=()=>{ $$('[data-t2]').forEach(x=>x.setAttribute('aria-pressed',x===b)); const t=TECH[b.dataset.t2];
+    $('#techDetail').innerHTML=`<div class="row sp"><h3>${t.n}</h3><span class="badge b-sc">${CATN[t.fam]}</span></div>
+      <div><span class="note">Combustibles o recursos que puede usar</span><div style="margin-top:4px">${t.f.map(f=>`<span class="chip" style="${f[1]==='posible'?'border-style:dashed':''}">${f[0]}${f[1]==='posible'?' (según diseño)':''}</span>`).join('')}</div></div>
+      <p>${esc(t.x)}</p><div class="row">${bd('co')}<span class="src">Fuente: ${esc(t.t)}</span></div>`;say(t.n+': '+t.f.map(f=>f[0]).join(', '))});
+  const RL=[['Gas natural','No','No','Fósil: proviene de procesos geológicos y su combustión emite carbono.'],['Carbón mineral','No','No','Fósil.'],['Combustóleo y diésel','No','No','Derivados del petróleo, que es fósil.'],
+   ['Uranio','No','Sí','Es limpia según la Ley del Sector Eléctrico (fr. i, nucleoeléctrica) pero no figura entre las fuentes renovables: el uranio no se regenera a escala humana.'],
+   ['Radiación solar','Sí','Sí','Está en ambas listas.'],['Viento','Sí','Sí','Está en ambas listas.'],
+   ['Energía hidráulica','Sí','Sí','Renovable según la LPTE en cauces naturales o embalses ya existentes; limpia según la LSE (hidroeléctricas).'],
+   ['Calor geotérmico','Sí','Sí','Está en ambas listas.'],
+   ['Biomasa y biogás','Sí*','Sí*','*Depende de que el energético esté definido en la Ley de Biocombustibles y de que su proceso cumpla las condiciones de emisiones. No toda biomasa califica.']];
+  const rp=$('#rlPills');
+  RL.forEach(r=>{const b=document.createElement('button');b.className='pill';b.textContent=r[0];b.setAttribute('aria-pressed','false');
+    b.onclick=()=>{$$('#rlPills .pill').forEach(x=>x.setAttribute('aria-pressed',x===b));$('#rlOut').innerHTML=`<div class="row" style="margin-bottom:6px"><span class="badge b-sc">Renovable: ${r[1]}</span><span class="badge b-sc">Limpia: ${r[2]}</span></div>${esc(r[3])}`};rp.append(b)});
+}
+function drawChain(k){
+  const c=CHAINS[k];$$('#chainPills .pill').forEach(b=>b.setAttribute('aria-pressed',b.dataset.k===k));
+  $('#chain').innerHTML=c.s.map((s,i)=>`<button class="step" style="text-align:left;cursor:pointer" data-i="${i}"><small>${tip(CK[i],CL[i])}</small><b>${esc(s)}</b></button>`).join('');
+  const show=i=>{$('#chainTxt').innerHTML=`<b>${CL[i]}:</b> ${esc(c.dd[i])}`;$$('#chain .step').forEach((s,j)=>s.style.borderColor=j===i?'var(--uv)':'');$$('#chain .step').forEach((s,j)=>s.style.borderWidth=j===i?'2.5px':'')};
+  $$('#chain .step').forEach(b=>b.onclick=e=>{if(e.target.closest('.tip'))return;show(+b.dataset.i)});show(0);
+}
+
+/* ========== clasificador ========== */
+const CARDS=[
+ ['Gas natural','Recurso','F','Es un hidrocarburo fósil.'],['Carbón mineral','Recurso','F','Fósil sólido.'],['Combustóleo','Recurso','F','Derivado del petróleo, por tanto fósil.'],['Diésel','Recurso','F','Derivado del petróleo, por tanto fósil.'],
+ ['Uranio','Recurso','N','Su energía viene de la fisión. No es renovable, aunque la LSE lo considera limpia.'],
+ ['Radiación solar','Recurso','R','Se renueva de forma continua.'],['Viento','Recurso','R','Se renueva de forma continua.'],['Energía hidráulica','Recurso','R','El ciclo del agua la renueva.'],['Calor geotérmico','Recurso','R','Calor interno de la tierra; la ley lo lista como renovable.'],['Biomasa y biogás renovables','Recurso','R','Renovable cuando el energético cumple lo que defina la Ley de Biocombustibles.'],
+ ['Ciclo combinado','Tecnología','F','Puede tener diseños con combustibles distintos, pero todos son fósiles (gas natural o alterno). Por eso va en fósiles.'],
+ ['Carboeléctrica','Tecnología','F','Carbón, y en unidades duales también combustóleo: ambos fósiles.'],
+ ['Vapor convencional','Tecnología','F','Usa combustóleo y gas natural: dos combustibles, ambos fósiles.'],
+ ['Turbogás','Tecnología','F','Gas natural o diésel según el diseño: ambos fósiles.'],
+ ['Combustión interna','Tecnología','F','Motores de diésel u otros derivados: fósiles.'],
+ ['Nucleoeléctrica','Tecnología','N','Usa uranio y fisión.'],
+ ['Solar fotovoltaica','Tecnología','R','Usa radiación solar.'],['Eólica','Tecnología','R','Usa viento.'],['Hidroeléctrica','Tecnología','R','Usa agua.'],['Geotérmica','Tecnología','R','Usa calor geotérmico.'],['Bioenergía','Tecnología','R','Usa biomasa o biogás renovables.'],
+ ['Turbina de vapor','Equipo','D','Se usa con carbón, combustóleo, gas, uranio, geotermia o biomasa: no se puede clasificar sola. Depende del combustible.'],
+ ['Cogeneración eficiente','Tecnología','D','Produce electricidad y calor útil con distintos combustibles (gas natural, biomasa u otros). Su clasificación depende del combustible, no de la tecnología.']
+].map((c,i)=>({id:i,n:c[0],kind:c[1],a:c[2],why:c[3]}));
+const ZN={F:'Fósiles',N:'Nucleares',R:'Renovables',D:'Depende del combustible'};
+let cl={sel:null,placed:{},ok:0,err:0};
+function sec2(){
+  const el=$('#p-clasificador');
+  el.innerHTML=`<div><h2>Clasificador de recursos y tecnologías</h2>
+  <p class="lead">${CARDS.length} tarjetas. Arrástralas a una zona, o selecciona una tarjeta y pulsa «Colocar aquí» (funciona con teclado). Algunas tecnologías no se pueden clasificar sin saber el combustible: para eso existe la cuarta zona.</p></div>
+  <div class="score" aria-live="polite"><span>Aciertos <b id="sOk">0</b></span><span>Errores <b id="sEr">0</b></span><span>Pendientes <b id="sPe">${CARDS.length}</b></span><button class="btn" id="clReset">Reiniciar</button></div>
+  <div class="pool" id="pool" aria-label="Tarjetas pendientes"></div>
+  <div class="feedback" id="clFb" aria-live="polite">Selecciona o arrastra una tarjeta.</div>
+  <div class="zones" id="zones"></div>`;
+  const z=$('#zones');
+  Object.entries(ZN).forEach(([k,n])=>{const d=document.createElement('div');d.className='zone';d.dataset.z=k;
+    d.innerHTML=`<h3>${n}</h3><button class="place" disabled>Colocar aquí</button><div class="zl"></div>`;z.append(d);
+    d.ondragover=e=>{e.preventDefault();d.classList.add('over')};d.ondragleave=()=>d.classList.remove('over');
+    d.ondrop=e=>{e.preventDefault();d.classList.remove('over');const id=e.dataTransfer.getData('text/plain');if(id!=='')tryPlace(+id,k)};
+    $('.place',d).onclick=()=>{if(cl.sel!=null)tryPlace(cl.sel,k)};});
+  $('#clReset').onclick=()=>{cl={sel:null,placed:{},ok:0,err:0};sec2()};
+  drawPool();
+}
+function drawPool(){
+  const pool=$('#pool');pool.innerHTML='';
+  CARDS.filter(c=>!(c.id in cl.placed)).forEach(c=>{const b=document.createElement('button');b.className='kc';b.draggable=true;b.setAttribute('aria-pressed',cl.sel===c.id);
+    b.innerHTML=`<small>${c.kind}</small>${esc(c.n)}`;b.ondragstart=e=>{e.dataTransfer.setData('text/plain',c.id);cl.sel=c.id};
+    b.onclick=()=>{cl.sel=cl.sel===c.id?null:c.id;drawPool();if(cl.sel!=null)say(c.n+' seleccionada. Elige una zona.')};pool.append(b)});
+  $$('.zone .place').forEach(p=>p.disabled=cl.sel==null);
+  $('#sOk').textContent=cl.ok;$('#sEr').textContent=cl.err;$('#sPe').textContent=CARDS.length-Object.keys(cl.placed).length;
+  if(!pool.children.length)pool.innerHTML=`<b>Terminaste: ${cl.ok} aciertos y ${cl.err} errores.</b>`;
+}
+function tryPlace(id,z){
+  const c=CARDS[id],fb=$('#clFb');
+  if(c.a===z){cl.placed[id]=z;cl.ok++;cl.sel=null;
+    const b=document.createElement('span');b.className='kc ok';b.innerHTML=`<small>${c.kind}</small>${esc(c.n)}`;$(`.zone[data-z="${z}"] .zl`).append(b);
+    fb.className='feedback';fb.innerHTML=`<b>✓ Correcto.</b> ${esc(c.n)} → ${ZN[z]}. ${esc(c.why)}`;say('Correcto. '+c.why);}
+  else{cl.err++;fb.className='feedback bad';
+    const extra=c.a==='D'?'No se puede forzar una clasificación única: ':z==='D'?'Esta tarjeta sí tiene una clasificación definida (':'';
+    fb.innerHTML=`<b>✕ No va en ${ZN[z]}.</b> ${c.a==='D'?esc(c.why):`${esc(c.n)} pertenece a ${ZN[c.a]}. ${esc(c.why)}`}`;say('Incorrecto. '+c.why);}
+  drawPool();
+}
+
+/* ========== diagramas de conversión ========== */
+const CONV=[
+ {id:'gas',n:'Gas natural',st:[
+  ['Gas natural','Energía química','El gas natural almacena energía en sus enlaces químicos. Llega a la central por ducto.'],
+  ['Combustión','Química → térmica','El gas se mezcla con aire comprimido y se quema. Libera calor y produce gases a alta presión y temperatura.'],
+  ['Turbinas','Térmica → mecánica','Los gases se expanden en la turbina de gas y la hacen girar. En ciclo combinado, el calor de escape produce vapor para una segunda turbina.'],
+  ['Generador','Mecánica → eléctrica','El eje de la turbina hace girar el rotor del generador. Por inducción electromagnética se induce un voltaje alterno trifásico.'],
+  ['Electricidad','Energía eléctrica','Se eleva el voltaje con transformadores y se envía a la red.']],
+  d:[['Ciclo combinado (CFE, 2024)',61490,'GWh brutos'],['Turbogás (CFE, 2024)',8379,'GWh brutos']],src:D24+', PDF p. 29'},
+ {id:'carbon',n:'Carbón',st:[
+  ['Carbón','Energía química','El carbón mineral se tritura y se alimenta a la caldera.'],
+  ['Combustión','Química → térmica','Al quemarse calienta las paredes de la caldera.'],
+  ['Vapor','Térmica → energía del vapor','El agua se evapora y se sobrecalienta a alta presión.'],
+  ['Turbina de vapor','Vapor → mecánica','El vapor se expande en la turbina y la hace girar.'],
+  ['Electricidad','Mecánica → eléctrica','El generador acoplado entrega corriente alterna a la red.']],
+  d:[['Carboeléctrica (CFE, 2024)',14012,'GWh brutos'],['Carbón consumido (CFE, 2024)',128665,'TJ']],src:D24+', PDF p. 29. Las unidades duales también usan combustóleo.'},
+ {id:'uranio',n:'Uranio',st:[
+  ['Uranio','Energía nuclear','El combustible son barras con uranio. No hay combustión.'],
+  ['Fisión','Nuclear → térmica','Los núcleos se dividen al absorber neutrones y liberan calor.'],
+  ['Calor','Térmica','El calor pasa al agua del sistema de enfriamiento del reactor.'],
+  ['Vapor','Térmica → vapor','El agua se convierte en vapor que alimenta la turbina.'],
+  ['Electricidad','Mecánica → eléctrica','La turbina mueve el generador y el voltaje se eleva para la red.']],
+  d:[['Nucleoeléctrica (CFE, 2024)',12306.6,'GWh brutos'],['Uranio consumido (CFE, 2024)',130343,'TJ']],src:D24+', PDF p. 29-30',calc:'nuc'},
+ {id:'sol',n:'Radiación solar',st:[
+  ['Radiación solar','Energía radiante','La luz solar incide sobre los paneles.'],
+  ['Efecto fotovoltaico','Luz → eléctrica (CC)','Los fotones liberan electrones en el semiconductor de cada celda y se genera corriente continua.'],
+  ['Inversor','CC → CA','El inversor convierte la corriente continua en alterna con la frecuencia de la red.'],
+  ['Electricidad','Energía eléctrica','Un transformador adapta el voltaje y se inyecta a la red.']],
+  d:[['Solar fotovoltaica (CFE, 2024)',555,'GWh brutos'],['Capacidad efectiva (CFE, 2024)',433,'MW']],src:D24+', PDF p. 24 y 29'},
+ {id:'viento',n:'Viento',st:[
+  ['Viento','Energía cinética','El aire en movimiento transporta energía cinética.'],
+  ['Aspas y rotor','Cinética → mecánica','Las aspas giran el rotor. La potencia disponible crece con el cubo de la velocidad: P = ½·ρ·A·v³.'],
+  ['Generador','Mecánica → eléctrica','Un generador (con multiplicador de velocidad en muchos diseños) produce electricidad.'],
+  ['Electricidad','Energía eléctrica','Se eleva el voltaje y se entrega a la red.']],
+  d:[['Eólica (CFE, 2024)',75,'GWh brutos'],['Capacidad CFE Generación V (PIE), eólica',612.9,'MW']],src:D24+', PDF p. 24 y 29. La eólica de CFE es pequeña; los PIE aportan más.'},
+ {id:'agua',n:'Agua',st:[
+  ['Agua en embalse','Energía potencial','La altura del agua almacena energía potencial gravitatoria.'],
+  ['Conducto forzado','Potencial → cinética','Al descender, el agua gana velocidad.'],
+  ['Turbina hidráulica','Cinética → mecánica','El agua gira la turbina. La potencia es P = ρ·g·Q·H·η.'],
+  ['Generador','Mecánica → eléctrica','El generador entrega corriente alterna.'],
+  ['Electricidad','Energía eléctrica','Se transmite a la red después de elevar el voltaje.']],
+  d:[['Hidroeléctrica (CFE, 2024)',22354,'GWh brutos'],['Capacidad efectiva (CFE, 2024)',12155.6,'MW']],src:D24+', PDF p. 24 y 29'}
+];
+function sec3(){
+  const el=$('#p-conversion');
+  el.innerHTML=`<div><h2>Diagramas de conversión de energía</h2><p class="lead">Elige una cadena y toca cada etapa. Debajo de cada nodo aparece la forma de energía que cambia.</p></div>
+  <div class="pills" id="cvPills" role="group" aria-label="Cadena"></div>
+  <div class="card"><div class="flow" id="cvFlow"></div><div class="callout" id="cvTxt" aria-live="polite"></div>
+  <div class="grid g2" id="cvData"></div><div id="cvCalc"></div></div>`;
+  const p=$('#cvPills');CONV.forEach((c,i)=>{const b=document.createElement('button');b.className='pill';b.textContent=c.n;b.dataset.k=c.id;b.onclick=()=>drawConv(c.id);p.append(b)});
+  drawConv('gas');
+}
+function drawConv(id){
+  const c=CONV.find(x=>x.id===id);$$('#cvPills .pill').forEach(b=>b.setAttribute('aria-pressed',b.dataset.k===id));
+  $('#cvFlow').innerHTML=c.st.map((s,i)=>`<button class="node" data-i="${i}" aria-pressed="false"><b>${esc(s[0])}</b><small>${esc(s[1])}</small></button>${i<c.st.length-1?'<div class="arrow" aria-hidden="true"></div>':''}`).join('');
+  const show=i=>{$$('#cvFlow .node').forEach((n,j)=>n.setAttribute('aria-pressed',j==i));$('#cvTxt').innerHTML=`<b>${esc(c.st[i][0])}.</b> ${esc(c.st[i][2])}`};
+  $$('#cvFlow .node').forEach(n=>n.onclick=()=>show(+n.dataset.i));show(0);
+  $('#cvData').innerHTML=c.d.map(d=>`<div class="kpi"><b>${fmt(d[1],d[1]%1?1:0)}</b><span>${d[2]}: ${d[0]}</span></div>`).join('');
+  $('#cvData').insertAdjacentHTML('beforeend',`<div class="row" style="grid-column:1/-1">${bd('of')}${SCOPE.cfe}<span class="src">Fuente: ${esc(c.src)}</span></div>`);
+  $('#cvCalc').innerHTML=c.calc==='nuc'?(()=>{const e=12306.6*3.6;return `<div class="callout">${bd('ca')} <b>Verificación física:</b> 12 306.6 GWh × 3.6 = ${fmt(e,0)} TJ de electricidad. Entre ${fmt(130343)} TJ de uranio da ${fmt(100*e/130343,1)} %, una eficiencia de conversión de energía del combustible a electricidad cercana al ⅓ típico de ciclos de vapor. Cálculo con generación bruta y un solo combustible.</div>`})():'';
+}
+
+/* ========== gráficas ========== */
+function legend(){return `<div class="legend"><span><i class="sw c-F"></i>Fósil</span><span><i class="sw c-N"></i>Nuclear (rayado)</span><span><i class="sw c-R"></i>Renovable</span></div>`}
+function bars(rows,max,opt={}){
+  return rows.map(r=>`<div class="brow" tabindex="0" data-t="${esc(r.tip||'')}"><div class="bl">${r.g?tip(r.g,esc(r.k)):esc(r.k)}</div>
+   <div class="bt ${r.b2!=null?'two':''}">${r.b2!=null?`<div class="bf prev ${'c-'+r.cat}" style="width:${100*r.b2/max}%"></div>`:''}<div class="bf ${'c-'+r.cat}" style="width:${Math.max(.6,100*r.b/max)}%"></div></div><div class="bv">${r.txt}</div></div>`).join('');
+}
+function stack(vals,labels){
+  return `<div class="stack" role="img" aria-label="${labels}">${['F','N','R'].map(c=>`<div class="seg c-${c}" style="flex:${vals[c]} 1 0" data-t="${CATN[c]}: ${fmt(vals[c+'t'],vals[c+'t']%1?1:0)} ${vals.u} (${fmt(vals[c],1)} %)">${vals[c]>5?fmt(vals[c],1)+' %':''}</div>`).join('')}</div>`;
+}
+function shares(arr){const t=arr.F+arr.N+arr.R;return{F:100*arr.F/t,N:100*arr.N/t,R:100*arr.R/t,Ft:arr.F,Nt:arr.N,Rt:arr.R}}
+function sec4(){
+  const gS={'2023':shares({F:catGen('F','a'),N:catGen('N','a'),R:catGen('R','a')}),'2024':shares({F:catGen('F','b'),N:catGen('N','b'),R:catGen('R','b')})};
+  const cS=shares({F:capCat('F'),N:capCat('N'),R:capCat('R')});
+  const max=Math.max(...GEN.map(x=>x.b));
+  const fmax=Math.max(...FUEL.map(f=>f.b));
+  const el=$('#p-matriz');
+  el.innerHTML=`<div><h2>Matriz energética por recurso</h2><p class="lead">Datos oficiales de los documentos cargados. Cada gráfica indica su alcance: solo CFE, CFE más PIE, o nacional.</p></div>
+  <div class="grid g2">
+   <div class="card"><div class="row sp"><h3>Generación bruta de CFE por tecnología</h3><div class="row">${bd('of')}${SCOPE.cfe}</div></div>
+     <div class="legend"><span>Barra clara: 2023</span><span>Barra fuerte: 2024</span></div>${legend()}
+     <div>${bars(GEN.map(x=>({k:x.k,g:x.g,cat:x.cat,b:x.b,b2:x.a,txt:fmt(x.b)+' GWh',tip:`${x.k}: ${fmt(x.a)} GWh en 2023 y ${fmt(x.b)} GWh en 2024 (${x.v>0?'+':''}${fmt(x.v,1)} %). Participación 2024: ${pct(x.b,TOT.b)}.`})),max)}</div>
+     <div class="src">Total 2024: <b>${fmt(TOT.b)} GWh</b> (2023: 150 462 GWh publicado; la suma de las filas redondeadas da ${fmt(TOT.a)}). Fuente: ${D24}, PDF p. 29 (pág. 26). Incluye unidades en puesta en servicio. «Diésel» y «Turbojet» son las etiquetas del informe.</div></div>
+   <div class="card"><div class="row sp"><h3>Participación por familia, CFE</h3><div class="row">${bd('ca')}${SCOPE.cfe}</div></div>${legend()}
+     <div class="src">Generación bruta 2023</div>${stack({...gS['2023'],u:'GWh'},'Participación 2023')}
+     <div class="src">Generación bruta 2024</div>${stack({...gS['2024'],u:'GWh'},'Participación 2024')}
+     <div class="src">Capacidad efectiva 2024 (${fmt(CAPT,1)} MW)</div>${stack({...cS,u:'MW'},'Capacidad 2024')}
+     <div class="callout"><b>Energías limpias</b> (nuclear + renovables) 2024: ${fmt(gS['2024'].N+gS['2024'].R,1)} % de la generación bruta de CFE. El informe publica 25.3 % (${fmt(38982.9)} GWh).</div>
+     <div class="src">Cálculo propio sobre la tabla del informe; las tecnologías se agrupan según las definiciones de la LPTE y la LSE.</div></div>
+  </div>
+  <div class="grid g2">
+   <div class="card"><div class="row sp"><h3>Evolución 2022-2024 (CFE)</h3><div class="row">${bd('of')}${SCOPE.cfe}</div></div>
+     <div class="grid g3" style="grid-template-columns:repeat(3,1fr)">
+      <div class="kpi"><span>Generación neta 2022</span><b>137.1</b><span>TWh</span></div><div class="kpi"><span>2023</span><b>145.2</b><span>TWh</span></div><div class="kpi"><span>2024</span><b>148.8</b><span>TWh</span></div></div>
+     <div>${bars([{k:'Capacidad 2022',cat:'F',b:44073.3,txt:'44 073.3 MW'},{k:'Capacidad 2023',cat:'F',b:44846.1,txt:'44 846.1 MW'},{k:'Capacidad 2024',cat:'F',b:45116.6,txt:'45 116.6 MW'}].map(r=>({...r,tip:r.k+': '+r.txt})),50000)}</div>
+     <div>${bars([{k:'Participación de CFE 2022',cat:'R',b:41.1,txt:'41.1 %'},{k:'Participación de CFE 2023',cat:'R',b:41.9,txt:'41.9 %'},{k:'Participación de CFE 2024',cat:'R',b:42.3,txt:'42.3 %'}].map(r=>({...r,tip:r.k+': '+r.txt})),100)}</div>
+     <div class="callout">El Informe 2024 publica la generación por tecnología solo para 2023 y 2024; de 2022 hay el total neto y la energía limpia (36.0 %, frente a 24.7 % en 2023 y 25.9 % en 2024, base neta). La caída es consistente con la hidráulica: la suma por central de las hidroeléctricas de CFE pasó de 33.8 TWh (2022) a 22.2 TWh (2024), según los Informes 2022 y 2024.</div>
+     <div class="src">Fuente: ${D24}, PDF p. 26 y 31. Cada grupo de barras usa su propia escala (MW frente a % del total nacional).</div></div>
+   <div class="card"><div class="row sp"><h3>Combustible consumido por CFE, 2024</h3><div class="row">${bd('of')}${SCOPE.cfe}</div></div>
+     <div class="legend"><span>Barra clara: 2023</span><span>Barra fuerte: 2024</span></div>${legend()}<div>${bars(FUEL.map(f=>({k:f.k,cat:f.cat,b:f.b,b2:f.a,txt:fmt(f.b)+' TJ',tip:`${f.k}: ${fmt(f.a)} TJ (2023) y ${fmt(f.b)} TJ (2024), ${(f.b/f.a-1)>0?'+':''}${fmt(100*(f.b/f.a-1),1)} %.`})),fmax)}</div>
+     <div class="callout">${bd('ca')} El gas natural aporta ${fmt(100*782478/FOSSTJ,1)} % de la energía de los combustibles fósiles de CFE (${fmt(782478)} de ${fmt(FOSSTJ)} TJ).</div>
+     <div class="src">Fuente: ${D24}, PDF p. 29. Energía que entra a las centrales (TJ), no electricidad. No se incluye el agua turbinada por una inconsistencia de unidades (ver «Fuentes y límites»).</div></div>
+  </div>
+  <div class="card"><div class="row sp"><h3>Alcance: CFE frente a CFE + PIE, 2024</h3><div class="row">${bd('of')}${bd('ca')}${SCOPE.pie}</div></div>
+   <div class="grid g3">
+    <div class="kpi"><b>148.8 TWh</b><span>CFE, generación neta · 74 % fósil, 26 % limpia</span></div>
+    <div class="kpi"><b>103.6 TWh</b><span>PIE · 97.6 % gas natural, 0.9 % diésel, 1.5 % eólica</span></div>
+    <div class="kpi"><b>252.3 TWh</b><span>CFE + PIE · 84 % fósil</span></div></div>
+   <div class="stack" role="img" aria-label="CFE y PIE">${['CFE|148.8|c-F','PIE|103.6|c-R'].map(s=>{const a=s.split('|');return `<div class="seg ${a[2]}" style="flex:${a[1]} 1 0">${a[0]}</div>`}).join('')}</div>
+   <p class="note">Cálculo: 0.74 × 148.8 + (97.6 % + 0.9 %) × 103.6 = ${fmt(.74*148.8+.985*103.6,1)} TWh fósiles, o ${fmt(100*(.74*148.8+.985*103.6)/252.3,1)} % de 252.3 TWh, consistente con el 84 % publicado. El informe atribuye el 16 % restante a «energía eólica», pero incluye la nucleoeléctrica, hidráulica y geotérmica de CFE.</p>
+   <div class="callout">Este 84 % <b>no es el dato nacional</b>. Con la participación publicada de CFE (42.3 %), CFE + PIE sería cerca de ${fmt(252.3/(148.775/.423)*100,0)} % del total ${bd('es','Estimación: se supone que la participación de 42.3 % se refiere a la misma base que la generación neta de CFE. El informe no lo detalla.')}, así que quedan otros generadores fuera.</div>
+   <div class="src">Fuente: ${D24}, PDF p. 195 (pág. 192) y 31.</div></div>
+  <div class="card"><div class="row sp"><h3>Capacidad instalada nacional (PRODESEN)</h3><div class="row">${bd('of')}${SCOPE.sen}</div></div>
+   <div class="grid g3"><div class="kpi"><b>92 503 MW</b><span>Capacidad instalada neta del SEN, 2022 (89 890 interconectada + 2 613 generación distribuida)</span></div>
+    <div class="kpi"><b>36.9 %</b><span>de esa capacidad era energía limpia en 2022</span></div>
+    <div class="kpi"><b>157 098 MW</b><span>Esperados al 2037 según el escenario de planeación</span></div></div>
+   <div class="src">Fuente: PRODESEN 2023-2037, Cap. 4, PDF p. 4 (pág. 52) y p. 6 (pág. 54). Es una planeación indicativa, no una garantía de proyectos. Los documentos cargados no traen la generación nacional por tecnología.</div></div>`;
+}
+
+/* ========== comparador ========== */
+const RES=[
+ {id:'gas',n:'Gas natural',cat:'F',ren:'No',lim:'No',comb:'Gas natural (combustible fósil)',conv:'Combustión → turbina de gas o caldera',tec:'Ciclo combinado, turbogás, vapor convencional',disp:'Depende del suministro y del precio del combustible. El Informe 2024 liga el gasto de 2024 a la oferta de gas en EE. UU. (PDF p. 195).',dir:'Sí: la combustión emite CO₂ y otros gases.',imp:{k:'Ciclo combinado',v:61490,note:'Gas natural también se usa en turbogás y vapor convencional'}},
+ {id:'carb',n:'Carbón mineral',cat:'F',ren:'No',lim:'No',comb:'Carbón mineral',conv:'Combustión → vapor → turbina',tec:'Carboeléctrica',disp:'Depende del suministro del combustible. El consumo de carbón de CFE subió 19.6 % en 2024.',dir:'Sí: la combustión emite CO₂ y otros contaminantes.',imp:{k:'Carboeléctrica',v:14012,note:'Las unidades duales también usan combustóleo'}},
+ {id:'cmb',n:'Combustóleo',cat:'F',ren:'No',lim:'No',comb:'Combustóleo (derivado del petróleo)',conv:'Combustión → vapor → turbina',tec:'Vapor convencional; carboeléctricas duales',disp:'Depende del suministro y del precio. El informe indica un precio de 13.73 USD/MMBtu en 2024, +150 % frente a lo presupuestado.',dir:'Sí: la combustión emite CO₂ y otros contaminantes.',imp:{k:'Vapor convencional',v:28135,note:'Esta tecnología usa combustóleo y gas natural'}},
+ {id:'dsl',n:'Diésel',cat:'F',ren:'No',lim:'No',comb:'Diésel (derivado del petróleo)',conv:'Combustión en motor o turbina',tec:'Combustión interna, turbogás; arranque en carboeléctricas',disp:'Depende del suministro y del precio.',dir:'Sí: la combustión emite CO₂ y otros contaminantes.',imp:{k:'Diésel (etiqueta del informe)',v:2851,note:'Etiqueta del informe para la generación con diésel'}},
+ {id:'uran',n:'Uranio',cat:'N',ren:'No',lim:'Sí (LSE)',comb:'Combustible nuclear',conv:'Fisión → calor → vapor → turbina',tec:'Nucleoeléctrica (Laguna Verde)',disp:'No se regenera a escala humana. La central opera de forma muy estable (alto uso de su capacidad).',dir:'No hay combustión al operar. Genera residuos radiactivos que requieren gestión.',imp:{k:'Nucleoeléctrica',v:12307,note:'Una sola central'}},
+ {id:'sol',n:'Radiación solar',cat:'R',ren:'Sí',lim:'Sí',comb:'Ninguno',conv:'Efecto fotovoltaico',tec:'Solar fotovoltaica',disp:'Depende del día, la nubosidad y la estación (intermitencia).',dir:'No hay combustión al operar.',imp:{k:'Solar fotovoltaica',v:555,note:'Casi se duplicó en 2024 (+102.6 %) sobre una base pequeña'}},
+ {id:'vie',n:'Viento',cat:'R',ren:'Sí',lim:'Sí',comb:'Ninguno',conv:'Energía cinética → aerogenerador',tec:'Eólica',disp:'Depende del viento del sitio (intermitencia). La potencia crece con v³.',dir:'No hay combustión al operar.',imp:{k:'Eoloeléctrica',v:75,note:'Solo CFE; los PIE tienen más capacidad eólica (612.9 MW)'}},
+ {id:'hid',n:'Energía hidráulica',cat:'R',ren:'Sí',lim:'Sí',comb:'Ninguno (agua)',conv:'Potencial → cinética → turbina',tec:'Hidroeléctrica',disp:'Depende de la lluvia y del nivel de los embalses: varió +14.2 % entre 2023 y 2024.',dir:'No hay combustión al operar.',imp:{k:'Hidroeléctrica',v:22354,note:'La mayor fuente limpia de CFE'}},
+ {id:'geo',n:'Calor geotérmico',cat:'R',ren:'Sí',lim:'Sí',comb:'Vapor geotérmico',conv:'Vapor → turbina',tec:'Geotermoeléctrica',disp:'Depende de yacimientos en sitios concretos. El consumo de vapor bajó 12.7 % y la generación 14.6 % en 2024.',dir:'No hay combustión; el vapor del yacimiento puede liberar gases.',imp:{k:'Geotermoeléctrica',v:3692,note:''}},
+ {id:'bio',n:'Biomasa y biogás',cat:'R',ren:'Sí*',lim:'Sí*',comb:'Biomasa o biogás',conv:'Combustión o digestión',tec:'Bioenergía',disp:'Depende del residuo o cultivo disponible. *Solo cuenta si el energético cumple la ley.',dir:'Sí: su combustión emite CO₂; si es neutral depende del origen.',imp:null}
+];
+let cmp=['gas','uran','sol'];
+function sec5(){
+  $('#p-comparador').innerHTML=`<div><h2>Comparador energético</h2><p class="lead">Selecciona de 2 a 4 recursos. Los valores de emisiones no se inventan: lo que no está en los documentos se marca como pendiente.</p></div>
+  <div class="pills" id="cmpPills" role="group" aria-label="Recursos a comparar"></div>
+  <div id="cmpOut" aria-live="polite"></div>`;
+  const p=$('#cmpPills');RES.forEach(r=>{const b=document.createElement('button');b.className='pill';b.textContent=r.n;b.dataset.id=r.id;
+    b.onclick=()=>{const i=cmp.indexOf(r.id);if(i>=0){if(cmp.length>2)cmp.splice(i,1)}else{if(cmp.length>=4)cmp.shift();cmp.push(r.id)}drawCmp()};p.append(b)});
+  drawCmp();
+}
+function drawCmp(){
+  $$('#cmpPills .pill').forEach(b=>b.setAttribute('aria-pressed',cmp.includes(b.dataset.id)));
+  const rs=cmp.map(id=>RES.find(r=>r.id===id));
+  const row=(lab,f,g)=>`<tr><th>${g?tip(g,lab):lab}</th>${rs.map(r=>`<td>${f(r)}</td>`).join('')}</tr>`;
+  const mx=Math.max(...rs.map(r=>r.imp?r.imp.v:0));
+  $('#cmpOut').innerHTML=`<div class="tblwrap"><table><thead><tr><th></th>${rs.map(r=>`<th><span class="badge b-sc" style="margin-bottom:4px">${CATN[r.cat]}</span><br>${r.n}</th>`).join('')}</tr></thead><tbody>
+   ${row('¿Renovable?',r=>r.ren,'renovable')}${row('¿Limpia?',r=>r.lim,'limpia')}${row('Combustible',r=>r.comb,'combustible')}${row('Conversión',r=>r.conv,'conversion')}${row('Tecnología',r=>r.tec,'tecnologia')}${row('Disponibilidad',r=>r.disp,'intermitencia')}
+   ${row('Emisiones directas',r=>r.dir,'directas')}${row('Emisiones de ciclo de vida',r=>'<i>No cuantificadas en los documentos cargados.</i> Se necesita una fuente externa que proporciones.','ciclovida')}
+   ${row('Importancia en CFE, 2024',r=>r.imp?`<div class="brow" style="grid-template-columns:1fr"><div class="bt"><div class="bf c-${r.cat}" style="width:${Math.max(1,100*r.imp.v/mx)}%"></div></div><div>${fmt(r.imp.v)} GWh · ${pct(r.imp.v,TOT.b)}</div><div class="note">${esc(r.imp.k)}${r.imp.note?'. '+esc(r.imp.note):''}</div></div>`:'<span class="note">Sin generación en la tabla de CFE. El informe reporta 300 MW de bioenergía en Contratos Legados (PDF p. 75).</span>')}
+   </tbody></table></div>
+   <div class="row" style="margin-top:8px">${bd('of')}${bd('co')}<span class="src">La generación asociada es la de la tecnología principal: una tecnología puede usar más de un combustible, así que no es la generación del combustible. Dato de CO₂ de CFE: ${tip('co2','0.6 tCO₂/MWh en 2022-2024')}, promedio de todo su parque.</span></div>`;
+}
+
+/* ========== conciencia ========== */
+function sec6(){
+  const f24=shares({F:catGen('F','b'),N:catGen('N','b'),R:catGen('R','b')}),f23=shares({F:catGen('F','a'),N:catGen('N','a'),R:catGen('R','a')});
+  const cS=shares({F:capCat('F'),N:capCat('N'),R:capCat('R')});
+  const uses=GEN.filter(x=>x.c2).map(x=>({k:x.k,g:x.g,cat:x.cat,b:useIdx(x)*100,txt:fmt(useIdx(x)*100,0)+' %',tip:x.k+': índice aproximado de uso de la capacidad en 2024.'}));
+  const dv=GEN.filter(x=>x.cat!=='x').map(x=>({k:x.k,cat:x.cat,b:Math.abs(x.v),txt:(x.v>0?'+':'−')+fmt(Math.abs(x.v),1)+' %',tip:`${x.k}: ${x.v>0?'+':''}${x.v} % entre 2023 y 2024`}));
+  const rs=GEN.filter(x=>x.cat==='R'),rsT=sum(rs,x=>x.b);
+  $('#p-conciencia').innerHTML=`<div><h2>Indicadores de conciencia energética</h2><p class="lead">Cinco indicadores calculados con datos de CFE. Cada uno termina con una pregunta para reflexionar.</p></div>
+  <div class="grid g2">
+   <div class="card"><h3>1 · Dependencia de combustibles fósiles</h3><div class="row">${bd('ca')}${SCOPE.cfe}</div>
+     <div class="kpi"><b>${fmt(f24.F,1)} %</b><span>de la generación bruta de CFE en 2024 fue fósil (2023: ${fmt(f23.F,1)} %). En capacidad: ${fmt(cS.F,1)} %.</span></div>
+     <div class="kpi"><b>${fmt(100*782478/FOSSTJ,0)} %</b><span>de la energía de combustibles fósiles de CFE es gas natural</span></div>
+     <div class="callout">Con CFE + PIE el fósil llega a 84 %. ¿Qué pasaría con el costo si un solo combustible concentra la mayor parte?</div></div>
+   <div class="card"><h3>2 · Participación de recursos renovables</h3><div class="row">${bd('ca')}${SCOPE.cfe}</div>
+     <div class="kpi"><b>${fmt(f24.R,1)} %</b><span>de la generación de CFE en 2024 (2023: ${fmt(f23.R,1)} %). En capacidad: ${fmt(cS.R,1)} %.</span></div>
+     <div class="kpi"><b>${fmt(100*22354/rsT,0)} %</b><span>de la generación renovable de CFE es hidráulica</span></div>
+     <div class="callout">La capacidad renovable pesa más que su generación. ¿Qué factores explican esa diferencia?</div></div>
+   <div class="card"><h3>3 · Participación de la energía nuclear</h3><div class="row">${bd('ca')}${SCOPE.cfe}</div>
+     <div class="kpi"><b>${fmt(f24.N,1)} %</b><span>de la generación con solo ${fmt(cS.N,1)} % de la capacidad de CFE</span></div>
+     <div class="callout">Una sola central genera casi una décima parte. ¿Qué ventajas y riesgos tiene depender de pocas instalaciones grandes?</div></div>
+   <div class="card"><h3>4 · Evolución de las tecnologías 2023 → 2024</h3><div class="row">${bd('of')}${SCOPE.cfe}</div>
+     <div>${bars(dv,110)}</div><div class="src">Magnitud del cambio. Signo en la etiqueta (+ sube, − baja). Fuente: ${D24}, PDF p. 29.</div>
+     <div class="callout">La solar creció +102.6 %, pero ¿cuántos GWh aportó realmente frente a la hidráulica?</div></div>
+   <div class="card" style="grid-column:1/-1"><h3>Uso de la capacidad por tecnología, 2024</h3><div class="row">${bd('ca')}${SCOPE.cfe}${tip('factor','<span class="badge b-co">¿Cómo se calcula?</span>')}</div>
+     <div>${bars(uses,100)}</div>${legend()}
+     <div class="src">Índice = generación bruta ÷ (capacidad efectiva promedio 2023-2024 × ${fmt(HRS24)} h). La solar se calculó con promedio porque pasó de 126 a 433 MW. Aproximación, no el factor de planta oficial (CFE total: 38.5 %).</div></div>
+   <div class="card" style="grid-column:1/-1"><h3>5 · Implicaciones de usar recursos renovables y no renovables</h3><div class="row">${bd('of')}${bd('si')}${SCOPE.cfe}</div>
+     <div class="grid g3">
+      <div class="callout"><b>No renovables:</b> el costo variable depende del combustible. Según el informe, los combustibles son 58 % de los costos totales de CFE (PDF p. 195). En 2024 CFE gastó 25 791 millones de pesos en gas natural.</div>
+      <div class="callout"><b>Renovables:</b> sin combustible, pero dependen del recurso. La hidráulica creció +14.2 % entre 2023 y 2024; ese tipo de variación se debe a la hidrología, no a una decisión de despacho.</div>
+      <div class="callout"><b>Reflexiona:</b> ¿qué conviene a un sistema: menor costo de combustible, o un recurso que no siempre está disponible cuando se necesita?</div></div>
+     <div><label for="gasSl"><b>Simulador:</b> variación del precio del gas natural: <b id="gasVal">+0 %</b></label>
+      <input id="gasSl" type="range" min="-30" max="50" step="5" value="0"></div>
+     <div class="grid g2"><div class="kpi"><b id="gasCost">${fmt(25791)}</b><span>millones de pesos: gasto de CFE en gas (2024 real con 0 %)</span></div>
+      <div class="kpi"><b id="gasDelta">+0</b><span>millones de pesos de diferencia (volumen y otros costos constantes)</span></div></div>
+     <div class="src">Simulación lineal: costo × (1 + variación). No incluye cambios de despacho, cobertura ni efecto en los PIE. Dato base: ${D24}, PDF p. 195.</div></div>
+  </div>`;
+  $('#gasSl').oninput=e=>{const v=+e.target.value;$('#gasVal').textContent=(v>=0?'+':'−')+Math.abs(v)+' %';$('#gasCost').textContent=fmt(25791*(1+v/100),0);const d=25791*v/100;$('#gasDelta').textContent=(d>=0?'+':'−')+fmt(Math.abs(d),0)};
+}
+
+/* ========== reflexión ========== */
+function qChart(i){
+  const f24=shares({F:catGen('F','b'),N:catGen('N','b'),R:catGen('R','b')}),cS=shares({F:capCat('F'),N:capCat('N'),R:capCat('R')});
+  if(i===0)return legend()+`<div class="src">Capacidad efectiva 2024</div>${stack({...cS,u:'MW'},'Capacidad')}<div class="src">Generación bruta 2024</div>${stack({...f24,u:'GWh'},'Generación')}`;
+  if(i===1)return bars(FUEL.map(f=>({k:f.k,cat:f.cat,b:f.b,txt:fmt(f.b)+' TJ'})),Math.max(...FUEL.map(f=>f.b)));
+  if(i===2)return bars(['Solar fotovoltaica','Hidroeléctrica'].map(n=>{const x=GEN.find(g=>g.k===n);return{k:n,cat:x.cat,b:Math.abs(x.b-x.a),txt:`+${fmt(x.b-x.a)} GWh (${x.v>0?'+':''}${fmt(x.v,1)} %)`}}),3000);
+  if(i===3)return `<div class="stack"><div class="seg c-F" style="flex:148.8">CFE 148.8 TWh</div><div class="seg c-R" style="flex:103.6">PIE 103.6 TWh</div></div><div class="src">Fósil: CFE 74 %, PIE 98.5 %, conjunto 84 %.</div>`;
+  return '';
+}
+const QS=[
+ {q:'En la gráfica, la nuclear tiene una porción pequeña de la capacidad pero mayor de la generación. ¿Qué indica?',o:['Genera electricidad más barata que las demás tecnologías.','Opera más horas cerca de su capacidad que el promedio del parque.','Los datos son inconsistentes y no se pueden usar.','Las renovables operan más tiempo que la nuclear.'],a:1,
+  e:['No: la gráfica no trae costos. Relacionar generación con capacidad habla de uso de la central, no de precio.','Correcto. Generación ÷ capacidad es mayor que en el promedio; calculamos ≈87 % para la nuclear frente a 38.5 % del parque de CFE.','No: capacidad y generación miden cosas distintas (MW frente a GWh); que difieran es normal.','Es al revés: las renovables tienen más peso en capacidad que en generación.']},
+ {q:'El gas natural es la mayor parte de la energía que consume CFE en combustibles fósiles. ¿Qué implicación se desprende?',o:['Que todos los fósiles tienen el mismo riesgo de precio.','Que un cambio en el precio o suministro del gas afecta sobre todo los costos de CFE.','Que al subir el gas, el combustóleo baja de precio.','Que no afecta, porque CFE también usa uranio.'],a:1,
+  e:['No: cada combustible tiene su propio mercado.','Correcto. Cuando un combustible concentra el consumo, el costo es sensible a su mercado. El simulador de la sección anterior lo muestra.','No se deduce de los datos; los precios pueden moverse juntos o no.','El uranio es una parte menor y no sustituye al gas en las centrales que lo usan.']},
+ {q:'La solar fotovoltaica creció +102.6 % y la hidráulica +14.2 %. ¿Qué conclusión es correcta?',o:['La solar aportó más energía nueva que la hidráulica.','El porcentaje de la solar es alto porque partía de una base pequeña; en GWh el aumento hidráulico fue mayor.','La hidráulica ya no es importante.','Los porcentajes no se pueden comparar con nada.'],a:1,
+  e:['No: +281 GWh frente a +2 786 GWh.','Correcto: un porcentaje alto sobre una base pequeña pesa poco en términos absolutos.','No: sigue siendo la principal fuente limpia de CFE (22 354 GWh).','Se pueden comparar, pero conviene mirar también el valor absoluto.']},
+ {q:'Un estudiante dice: «El 84 % de la electricidad de México es fósil». ¿Qué es lo más preciso?',o:['Es correcto: es el dato nacional.','Es el dato de CFE + PIE; no es el total nacional y no incluye a otros generadores.','Es solo de CFE.','Se puede usar el dato de 2022 para validarlo.'],a:1,
+  e:['No: el informe lo presenta para CFE y los PIE.','Correcto. El alcance importa: CFE tiene 74 % fósil, los PIE casi 100 % y el conjunto 84 %. El total nacional requiere otra fuente.','No: CFE sola es 74 %.','No: 2022 no está calculado con la misma base.']},
+ {q:'Según las definiciones cargadas, ¿qué afirmación sobre la energía nuclear es correcta?',o:['Es renovable porque no emite CO₂.','Es limpia según la Ley del Sector Eléctrico, pero no aparece entre las fuentes renovables de la LPTE.','No es ni renovable ni limpia.','Es renovable y no limpia.'],a:1,
+  e:['No: renovable se define por regenerarse a escala humana, no por sus emisiones.','Correcto: son dos criterios distintos en dos leyes.','No: la lista de la LSE incluye explícitamente la energía nucleoeléctrica.','No: es lo contrario.']}
+];
+let qs={a:{}};
+function sec7(){
+  $('#p-reflexion').innerHTML=`<div><h2>Actividad de reflexión</h2><p class="lead">Cinco preguntas que piden interpretar una gráfica o comparar recursos. Al responder verás por qué cada opción es correcta o no.</p></div>
+  <div class="grid g2" id="qs"></div><div class="card" id="qres" aria-live="polite"><b>Resultado</b><span class="note">Responde todas las preguntas para ver tu resultado.</span></div>`;
+  QS.forEach((q,i)=>{const d=document.createElement('div');d.className='card';
+    d.innerHTML=`<span class="qn">Pregunta ${i+1} de ${QS.length}</span><div>${qChart(i)}</div><b>${esc(q.q)}</b><div class="opts"></div><div class="feedback" hidden></div>`;
+    const o=$('.opts',d);q.o.forEach((t,j)=>{const b=document.createElement('button');b.className='opt';b.textContent=t;b.onclick=()=>ans(i,j,d);o.append(b)});$('#qs').append(d)});
+}
+function ans(i,j,d){
+  const q=QS[i];qs.a[i]=j;
+  $$('.opt',d).forEach((b,k)=>{b.disabled=true;if(k===q.a)b.classList.add('right');else if(k===j)b.classList.add('wrong');if(k===j)b.classList.add('sel')});
+  const fb=$('.feedback',d);fb.hidden=false;fb.className='feedback'+(j===q.a?'':' bad');
+  fb.innerHTML=`<b>${j===q.a?'✓ Correcto':'✕ No es esa'}</b><br>${esc(q.e[j])}${j!==q.a?`<br><b>Respuesta correcta:</b> ${esc(q.e[q.a])}`:''}`;
+  if(Object.keys(qs.a).length===QS.length){const n=QS.filter((x,k)=>qs.a[k]===x.a).length;$('#qres').innerHTML=`<b>Resultado: ${n} de ${QS.length}</b><span class="note">${n===QS.length?'Interpretaste bien alcance, unidades y definiciones.':'Revisa las preguntas marcadas y compara su alcance (CFE, CFE + PIE, nacional) y las unidades (MW frente a GWh).'}</span><button class="btn" id="qRe">Reiniciar</button>`;$('#qRe').onclick=()=>{qs={a:{}};sec7()}}
+}
+
+/* ========== pie ========== */
+function foot(){
+  $('#main').insertAdjacentHTML('beforeend',`<footer>
+   <details><summary>Fuentes y límites de los datos</summary><ul>
+    <li><b>${D24}</b> (versión 7-jul-2025): generación por tecnología y consumo de combustibles (PDF p. 29, pág. 26), capacidad (p. 24), indicadores (p. 31), CFE + PIE (p. 195).</li>
+    <li><b>PRODESEN 2023-2037, Cap. 4:</b> capacidad nacional 2022 y planeación al 2037 (PDF p. 4 y 6).</li>
+    <li><b>DOF 18-mar-2025:</b> definiciones de energías limpias (Ley del Sector Eléctrico, extracto p. 3) y de renovables y fósiles (Ley de Planeación y Transición Energética, decreto completo p. 192).</li>
+    <li><b>Corrección:</b> el Informe 2022 (p. 35) reporta 35.1 TWh hidráulicos y 36 % de energía limpia en 2022. La suma por central de las tablas de ambos informes (33.8 TWh netos en 2022) lo respalda, y explica la caída posterior. La serie por tecnología de 2022 simplemente no está publicada en la misma tabla que 2023-2024.</li>
+    <li><b>Inconsistencia 1:</b> «Agua turbinada» (100 594 miles de m³, PDF p. 29) es demasiado bajo para producir 22 354 GWh (solo la EPS CFE Generación I reporta 29 030 Mm³ en 2024, p. 32); se sospecha un error de unidad y no se usa.</li>
+    <li><b>Inconsistencia 2:</b> el Informe 2024 (p. 195) dice que el 16 % no fósil de CFE + PIE es «energía eólica», pero incluye nuclear, hidráulica y geotermia de CFE.</li>
+    <li><b>Pendientes:</b> emisiones de ciclo de vida por tecnología, generación nacional por tecnología y el potencial de recursos (irradiación, viento) requieren fuentes oficiales externas; no se usaron valores no documentados.</li>
+    <li><b>Marca:</b> los colores se muestrearon del kit Ultravioleta v1.0 (#32095F, #4B1C8F, #8E4DF2, #E4CCFF); el logotipo es un recorte provisional del kit en baja resolución, a sustituir por el SVG original.</li></ul></details>
+  </footer>`);
+}
+
+/* ========== pestañas ========== */
+const TABS=[['clasificacion','1 · Clasificación',sec1],['clasificador','2 · Clasificador',sec2],['conversion','3 · Conversión',sec3],['matriz','4 · Matriz energética',sec4],['comparador','5 · Comparador',sec5],['conciencia','6 · Indicadores',sec6],['reflexion','7 · Reflexión',sec7]];
+const tl=$('#tablist');tl.setAttribute('role','tablist');
+TABS.forEach(([id,n,fn])=>{
+  const b=document.createElement('button');b.className='tab';b.id='t-'+id;b.setAttribute('role','tab');b.setAttribute('aria-controls','p-'+id);b.textContent=n;b.onclick=()=>go(id);tl.append(b);
+  const s=document.createElement('section');s.className='panel';s.id='p-'+id;s.setAttribute('role','tabpanel');s.setAttribute('aria-labelledby','t-'+id);s.hidden=true;$('#main').append(s);fn();
+});
+foot();
+function go(id,fromHash){
+  if(!TABS.some(t=>t[0]===id))id='clasificacion';
+  TABS.forEach(([t])=>{$('#p-'+t).hidden=t!==id;const b=$('#t-'+t);b.setAttribute('aria-selected',t===id);b.tabIndex=t===id?0:-1});
+  hideTip();if(!fromHash){try{history.replaceState(null,'','#'+id)}catch(e){}}
+  $('#t-'+id).scrollIntoView({block:'nearest',inline:'center'});
+}
+tl.addEventListener('keydown',e=>{const i=TABS.findIndex(t=>$('#t-'+t[0]).getAttribute('aria-selected')==='true');
+  if(e.key==='ArrowRight'||e.key==='ArrowLeft'){const j=(i+(e.key==='ArrowRight'?1:-1)+TABS.length)%TABS.length;go(TABS[j][0]);$('#t-'+TABS[j][0]).focus()}});
+addEventListener('hashchange',()=>go(location.hash.slice(1),true));
+go(location.hash.slice(1)||'clasificacion',true);
+</script>
+
+</body>
+</html>
